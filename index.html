@@ -596,9 +596,7 @@ route();`, 'JavaScript'],
       '<div class="row-body">' + metaLine(p, true) + '<h3>' + esc(p.title) + '</h3><p>' + esc(p.deck) + '</p></div></a>';
   }
   function subscribeForm(id, full) {
-    const opts = full ? '<fieldset><legend>What should we send?</legend>' + TOPICS.map(t =>
-      '<label class="opt"><input type="checkbox" name="topic" value="' + t.id + '" checked> ' + esc(t.name) + '</label>').join('') + '</fieldset>' : '';
-    return '<form class="sub" data-subscribe novalidate>' + opts +
+    return '<form class="sub" data-subscribe novalidate>' +
       '<div class="field"><label class="sr-only" for="' + id + '">Email address</label>' +
       '<input id="' + id + '" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required>' +
       '<button class="btn" type="submit">Join the list</button></div>' +
@@ -875,27 +873,44 @@ route();`, 'JavaScript'],
     if (e.target.id === 'q') { state.q = e.target.value; renderResults(); }
   });
 
-  document.addEventListener('submit', e => {
+  document.addEventListener('submit', async e => {
     const form = e.target.closest('form[data-subscribe]');
     if (!form) return;
     e.preventDefault();
     const input = $('input[type="email"]', form);
     const msg = $('.form-msg', form);
+    const button = $('button[type="submit"]', form);
     const email = input.value.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       input.setAttribute('aria-invalid', 'true');
       msg.className = 'form-msg err';
-      msg.textContent = 'Enter an email address like name@example.com.';
+      msg.textContent = 'Enter a valid email address.';
       input.focus();
       return;
     }
-    const box = document.createElement('div');
-    box.className = 'thanks';
-    const h = document.createElement('h3'); h.textContent = 'Thanks for reading.';
-    const p = document.createElement('p');
-    p.textContent = 'This site is a preview, so ' + email + ' was not saved and no email will arrive. A mailing service has to be connected first.';
-    box.appendChild(h); box.appendChild(p);
-    form.replaceWith(box);
+    input.removeAttribute('aria-invalid');
+    button.disabled = true;
+    button.textContent = 'Joining…';
+    msg.className = 'form-msg';
+    msg.textContent = 'Adding you to the list…';
+    try {
+      const response = await fetch('/.netlify/functions/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Subscription failed. Please try again.');
+      msg.className = 'form-msg';
+      msg.textContent = 'You’re on the list. Thanks for reading!';
+      input.value = '';
+      button.textContent = 'Joined';
+    } catch (error) {
+      msg.className = 'form-msg err';
+      msg.textContent = error.message || 'Something went wrong. Please try again.';
+      button.disabled = false;
+      button.textContent = 'Join the list';
+    }
   });
 
   window.addEventListener('hashchange', () => render(false));
