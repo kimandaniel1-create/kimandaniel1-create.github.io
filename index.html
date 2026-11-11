@@ -174,29 +174,6 @@ main h1:focus { outline: none; }
 @media (max-width: 900px) { .topics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .topics { grid-template-columns: minmax(0, 1fr); } }
 
-/* Image Slider Component */
-.slider-controls { display: flex; gap: .5rem; }
-.slider-btn { width: 2.25rem; height: 2.25rem; border-radius: 50%; border: 1px solid var(--line-strong); background: var(--bg-raise); color: var(--fg); cursor: pointer; display: grid; place-items: center; transition: all .2s; }
-.slider-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--bg-sunk); }
-.slider-track {
-  display: flex; gap: 1.25rem; overflow-x: auto; scroll-behavior: smooth;
-  scroll-snap-type: x mandatory; padding-bottom: .75rem;
-  scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent;
-}
-.slider-track::-webkit-scrollbar { height: 6px; }
-.slider-track::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 999px; }
-.slider-item {
-  flex: 0 0 calc(33.333% - 0.85rem); min-width: 260px; scroll-snap-align: start;
-  display: flex; flex-direction: column; gap: .75rem; text-decoration: none;
-}
-.slider-item .slide-img-wrap { aspect-ratio: 16 / 10; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--bg-sunk); position: relative; }
-.slider-item img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s ease; }
-.slider-item:hover img { transform: scale(1.05); }
-.slider-item h4 { margin: 0; font-size: 1.125rem; font-weight: 600; line-height: 1.3; }
-.slider-item:hover h4 { color: var(--accent); }
-@media (max-width: 768px) { .slider-item { flex: 0 0 calc(60% - .5rem); } }
-@media (max-width: 480px) { .slider-item { flex: 0 0 85%; } }
-
 /* Cards and rows */
 .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2.75rem 2rem; }
 @media (max-width: 700px) { .grid-2 { grid-template-columns: minmax(0, 1fr); } }
@@ -392,8 +369,11 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 (function () {
   'use strict';
 
+  /* Content lives in two files next to this page: site.json (settings) and posts.json (articles).
+     Edit them from the Pages CMS dashboard; this script only reads them. */
   var SITE = {}, POSTS = [], TOPICS = [], READY = false;
 
+  /* ---------- Helpers ---------- */
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -412,6 +392,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
   const fmtDate = d => d ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
   const safeUrl = u => !/^\s*(javascript|data|vbscript):/i.test(u);
 
+  /* ---------- Load and prepare content ---------- */
   function getJSON(name, optional) {
     return fetch(name, { cache: 'no-cache' }).then(r => {
       if (!r.ok) throw new Error(name + ' could not be loaded (status ' + r.status + ').');
@@ -446,7 +427,6 @@ input[aria-invalid="true"] { border-color: var(--danger); }
         o.topicId = slugify(o.topicName) || 'notes';
         o.dateObj = parseDate(p.date);
         o.body = String(p.body || '');
-        o.coverImage = p.image || p.cover || ''; // Supports custom image URLs from JSON
         o.authorName = String(p.author || '').trim() || SITE.editor_name || '';
         const words = (o.deck + ' ' + o.body.replace(/```[\s\S]*?```/g, ' ')).split(/\s+/).filter(Boolean).length;
         o.mins = Math.max(1, Math.round(words / 230));
@@ -466,6 +446,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
   }
   const topicOf = id => TOPICS.find(t => t.id === id);
 
+  /* ---------- Markdown, kept small on purpose ---------- */
   function inl(s) {
     let t = esc(s);
     const codes = [];
@@ -547,6 +528,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
     return { html: html, heads: heads };
   }
 
+  /* ---------- Generated cover art: a dot field lit by one or two lamps ---------- */
   function hash(str) {
     let h = 2166136261;
     for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
@@ -578,14 +560,6 @@ input[aria-invalid="true"] { border-color: var(--danger); }
     return '<svg class="cover" viewBox="0 0 ' + f.W + ' ' + f.H + '" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><g fill="currentColor">' + circles + '</g></svg>';
   }
 
-  /* Helper to render image or fallback SVG */
-  function renderPostVisual(p) {
-    if (p.coverImage && safeUrl(p.coverImage)) {
-      return '<img src="' + esc(p.coverImage) + '" alt="' + esc(p.title) + '" loading="lazy">';
-    }
-    return coverSVG(p.slug);
-  }
-
   function bindLamp(el, slug) {
     const f = makeField(slug, 36, 22);
     const circles = $$('circle', el);
@@ -600,7 +574,6 @@ input[aria-invalid="true"] { border-color: var(--danger); }
       });
     }
     el.addEventListener('pointermove', e => {
-      if (!svg) return;
       const rc = svg.getBoundingClientRect();
       const sc = Math.max(rc.width / f.W, rc.height / f.H);
       const ox = (rc.width - f.W * sc) / 2, oy = (rc.height - f.H * sc) / 2;
@@ -615,11 +588,11 @@ input[aria-invalid="true"] { border-color: var(--danger); }
       (p.dateObj ? '<span>' + fmtDate(p.dateObj) + '</span>' : '') + '<span>' + p.mins + ' min read</span></div>';
   }
   function card(p) {
-    return '<a class="card" href="#post-' + p.slug + '"><div class="thumb">' + renderPostVisual(p) + '</div>' +
+    return '<a class="card" href="#post-' + p.slug + '"><div class="thumb">' + coverSVG(p.slug) + '</div>' +
       metaLine(p, true) + '<h3>' + esc(p.title) + '</h3>' + (p.deck ? '<p>' + esc(p.deck) + '</p>' : '') + '</a>';
   }
   function row(p) {
-    return '<a class="row" href="#post-' + p.slug + '"><div class="thumb">' + renderPostVisual(p) + '</div>' +
+    return '<a class="row" href="#post-' + p.slug + '"><div class="thumb">' + coverSVG(p.slug) + '</div>' +
       '<div class="row-body">' + metaLine(p, true) + '<h3>' + esc(p.title) + '</h3>' + (p.deck ? '<p>' + esc(p.deck) + '</p>' : '') + '</div></a>';
   }
   function newsUser() {
@@ -643,38 +616,6 @@ input[aria-invalid="true"] { border-color: var(--danger); }
   }
   function emptyState(title, text) {
     return '<div class="empty"><h3>' + esc(title) + '</h3><p>' + esc(text) + '</p></div>';
-  }
-
-  /* Component for the horizontal image slider between Topics and Latest */
-  function imageSliderBand() {
-    if (!POSTS.length) return '';
-    
-    // Sample high quality aesthetic images as defaults, fallback to SVG
-    const sampleImages = [
-      'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=800&q=80'
-    ];
-
-    const slideItems = POSTS.slice(0, 6).map((p, idx) => {
-      const imgSrc = p.coverImage || sampleImages[idx % sampleImages.length];
-      return '<a class="slider-item" href="#post-' + p.slug + '">' +
-        '<div class="slide-img-wrap"><img src="' + esc(imgSrc) + '" alt="' + esc(p.title) + '" loading="lazy"></div>' +
-        '<h4>' + esc(p.title) + '</h4>' +
-        '<div class="meta"><span>' + esc(p.topicName) + '</span></div>' +
-      '</a>';
-    }).join('');
-
-    return '<section class="band band-line"><div class="wrap">' +
-      '<div class="section-head"><h2 class="h-section">Gallery Preview</h2>' +
-      '<div class="slider-controls">' +
-        '<button type="button" class="slider-btn" data-slide="prev" aria-label="Previous Slide">‹</button>' +
-        '<button type="button" class="slider-btn" data-slide="next" aria-label="Next Slide">›</button>' +
-      '</div></div>' +
-      '<div class="slider-track" id="imageSliderTrack">' + slideItems + '</div>' +
-      '</div></section>';
   }
 
   /* ---------- Views ---------- */
@@ -701,7 +642,6 @@ input[aria-invalid="true"] { border-color: var(--danger); }
         const n = POSTS.filter(p => p.topicId === t.id).length;
         return '<a class="topic" href="#journal-' + t.id + '"><span class="count">' + plural(n, 'entry', 'entries') + '</span><h3>' + esc(t.name) + '</h3>' + (t.blurb ? '<p>' + esc(t.blurb) + '</p>' : '') + '</a>';
       }).join('') + '</div></div></section>' +
-      imageSliderBand() + /* Placed right between Topics and Latest */
       (latest.length ? '<section class="band band-line"><div class="wrap"><div class="section-head"><h2 class="h-section">Latest</h2>' +
         '<a class="more" href="#journal">All ' + POSTS.length + ' entries ' + ARROW + '</a></div>' +
         '<div class="grid-2">' + latest.map(card).join('') + '</div></div></section>' : '') +
@@ -762,7 +702,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
       '<div class="byline">' + who +
       '<div class="meta">' + (p.dateObj ? '<span>' + fmtDate(p.dateObj) + '</span>' : '') + '<span>' + p.mins + ' min read</span></div></div>' +
       '</div>' +
-      '<div class="wrap"><div class="thumb post-cover">' + renderPostVisual(p) + '</div></div>' +
+      '<div class="wrap"><div class="thumb post-cover">' + coverSVG(p.slug) + '</div></div>' +
       '<div class="wrap post-grid">' +
       '<aside class="toc" aria-label="In this piece">' + (body.heads.length ? '<p class="kicker">In this piece</p>' +
         body.heads.map(h => '<button type="button" data-jump="' + h.id + '">' + esc(h.text) + '</button>').join('') : '') + '</aside>' +
@@ -826,6 +766,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
       (err && err.message ? '<p class="count-line" style="margin-top:1.5rem">' + esc(err.message) + '</p>' : '') + '</div></section>';
   }
 
+  /* ---------- Header and footer ---------- */
   function chrome() {
     $('#brandName').textContent = SITE.name;
     $('#subscribeLink').hidden = !newsUser();
@@ -839,6 +780,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
       (SITE.email ? '<span>' + esc(SITE.email) + '</span>' : '') + '</div></div>';
   }
 
+  /* ---------- Router ---------- */
   function resolve() {
     const key = (location.hash || '').slice(1) || 'home';
     const name = SITE.name;
@@ -881,6 +823,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
     updateProgress();
   }
 
+  /* ---------- Reading progress and contents ---------- */
   let ticking = false;
   function updateProgress() {
     const art = $('#article');
@@ -901,6 +844,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
   }, { passive: true });
   window.addEventListener('resize', updateProgress);
 
+  /* ---------- Interactions ---------- */
   function legacyCopy(text) {
     const t = document.createElement('textarea');
     t.value = text; t.setAttribute('readonly', '');
@@ -925,7 +869,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
   }
 
   document.addEventListener('click', e => {
-    const t = e.target.closest('button, [data-jump], [data-slide]');
+    const t = e.target.closest('button, [data-jump]');
     if (!t) return;
     if (t.id === 'searchBtn') {
       if (!READY) return;
@@ -950,12 +894,6 @@ input[aria-invalid="true"] { border-color: var(--danger); }
       state.q = '';
       const q = $('#q'); if (q) { q.value = ''; q.focus(); }
       renderResults();
-    } else if (t.hasAttribute('data-slide')) {
-      const track = $('#imageSliderTrack');
-      if (track) {
-        const amount = track.clientWidth * 0.8;
-        track.scrollBy({ left: t.dataset.slide === 'next' ? amount : -amount, behavior: 'smooth' });
-      }
     }
   });
 
@@ -976,6 +914,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
       input.focus();
       return;
     }
+    /* Valid: let the browser post the form to Buttondown. Its confirmation opens in a new tab. */
     input.removeAttribute('aria-invalid');
     msg.className = 'form-msg';
     msg.textContent = 'Almost there. Finish signing up in the new tab.';
@@ -984,6 +923,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 
   window.addEventListener('hashchange', () => { if (READY) render(false); });
 
+  /* ---------- Start ---------- */
   Promise.all([getJSON('site.json', true), getJSON('posts.json', false)]).then(res => {
     prepare(res[0], res[1]);
     READY = true;
