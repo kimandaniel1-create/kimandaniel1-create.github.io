@@ -54,5 +54,12 @@
     "date": "2026-09-23",
     "body": "A focus ring is the visible marker that shows keyboard and switch users which control will respond when they press a key. Removing it with `outline: none` and offering nothing in its place makes a page close to unusable for them.\n\n## Use focus-visible\n\nThe `:focus-visible` pseudo-class shows the ring when the browser judges that it helps, which in practice means keyboard focus and not mouse clicks. It removes the usual reason designers give for hiding outlines.\n\n```css\n:focus-visible {\n  outline: 2px solid #e9b96e;\n  outline-offset: 3px;\n}\n```\n\n## Make it visible against the ground\n\nA ring needs contrast with whatever sits behind it. WCAG 2.1 asks for 3 to 1 against adjacent colors for interface components, under criterion 1.4.11, Non-text Contrast. On a dark page a light accent works well. Offset the ring a few pixels so it does not merge with the control’s own border.\n\n## Do not let the header cover it\n\nWCAG 2.2 added criterion 2.4.11, Focus Not Obscured (Minimum), at level AA. A sticky header can hide a control that has just received focus. The fix is usually one line.\n\n```css\nhtml {\n  scroll-padding-top: 5.5rem; /* sticky header height, plus a little */\n}\n```\n\nThis site uses exactly that. Press Tab through any page and watch where the ring lands.",
     "draft": false
+  },
+  {
+    "title": "AFTERFRAMES",
+    "deck": "*Some moments disappear. Some remain. Others live forever inside a photograph.*",
+    "topic": "A JOURNAL OF PHOTOGRAPHY, MEMORY & VISUAL STORYTELLING",
+    "date": "2026-11-11",
+    "draft": false
   }
 ]
