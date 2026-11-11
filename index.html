@@ -3,13 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Low Light is a journal about making things for the web, edited by Adeniyi Daniel.">
+<meta name="description" content="A dark, sleek journal about making things for the web, edited by Adeniyi Daniel.">
 <meta name="theme-color" content="#0b0c10">
-<style>body{margin:0}[hidden]{display:none!important}</style>
 <title>Low Light</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..600&display=swap">
 <style>
+:root{color-scheme:dark}[hidden]{display:none!important}
 /* Layout concept: a left-aligned editorial grid on a blue-leaning near-black ground.
    One live moment, a dot field lit by a lamp that follows the pointer. Everything else stays quiet. */
 :root {
@@ -316,20 +315,34 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }
+
+/* Article content written in the dashboard */
+.prose h3 { font-family: var(--font-display); font-size: 1.25rem; font-weight: 650; letter-spacing: -.015em; line-height: 1.25; color: var(--fg); margin: 2em 0 .6em; text-wrap: balance; }
+.prose strong { color: var(--fg); font-weight: 600; }
+.prose a { color: var(--accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .18em; }
+.prose a:hover { color: var(--accent-hi); }
+.prose ul, .prose ol { margin: 0 0 1.4em; padding-left: 1.4em; }
+.prose li { margin-bottom: .45em; padding-left: .2em; }
+.prose li::marker { color: var(--accent); }
+.prose figure.pic { margin: 2em 0; }
+.prose figure.pic img { display: block; width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); background: var(--bg-sunk); }
+.prose figure.pic figcaption { margin-top: .6rem; font: 400 .8125rem/1.5 var(--font-mono); color: var(--muted); }
+.loading { padding-block: clamp(4rem, 12vw, 8rem); }
 </style>
 </head>
 <body>
+
 <button type="button" class="skip" id="skip">Skip to content</button>
 
 <header class="site-head">
   <div class="wrap head-row">
-    <a class="brand" href="#home" aria-label="Low Light, home">
+    <a class="brand" id="brandLink" href="#home" aria-label="Low Light, home">
       <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true" focusable="false">
         <circle class="ring" cx="11" cy="11" r="10"></circle>
         <circle class="halo" cx="11" cy="11" r="6"></circle>
         <circle class="core" cx="11" cy="11" r="2.6"></circle>
       </svg>
-      <span>Low Light</span>
+      <span id="brandName">Low Light</span>
     </a>
     <nav class="nav" aria-label="Primary">
       <a href="#journal" data-nav="journal">Journal</a>
@@ -339,13 +352,16 @@ input[aria-invalid="true"] { border-color: var(--danger); }
       <button type="button" class="icon-btn" id="searchBtn" aria-label="Search the journal">
         <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="5.5" fill="none" stroke="currentColor" stroke-width="1.6"></circle><path d="M12.2 12.2L16 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path></svg>
       </button>
-      <a class="pill" href="#subscribe" data-nav="subscribe">Subscribe</a>
+      <a class="pill" id="subscribeLink" href="#subscribe" data-nav="subscribe" hidden>Subscribe</a>
     </div>
   </div>
   <div class="progress" id="progress" aria-hidden="true" hidden><span></span></div>
 </header>
 
-<main id="main"></main>
+<main id="main">
+  <div class="wrap loading"><p class="kicker">Loading articles</p></div>
+  <noscript><div class="wrap loading"><p class="lede">This site needs JavaScript turned on to show its articles.</p></div></noscript>
+</main>
 
 <footer class="site-foot" id="foot"></footer>
 
@@ -353,180 +369,164 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 (function () {
   'use strict';
 
-  /* ---------- Content ---------- */
-  const AUTHORS = {
-    adeniyi: { name: 'Adeniyi Daniel', role: 'Editor and author', bio: 'Writes about design, performance and the habits behind good work, and edits Low Light.' }
-  };
-
-  const TOPICS = [
-    { id: 'design', name: 'Design', blurb: 'Type, color and layout, tuned for reading comfort.' },
-    { id: 'engineering', name: 'Engineering', blurb: 'Performance budgets, routing, and code you can read in one sitting.' },
-    { id: 'craft', name: 'Craft', blurb: 'Small interface details, from focus rings to empty states.' },
-    { id: 'notes', name: 'Notes', blurb: 'Short pieces on working habits and decisions along the way.' }
-  ];
-
-  const POSTS = [
-    {
-      slug: 'contrast-is-not-a-number',
-      title: 'Contrast is not a number',
-      deck: 'A ratio can pass an audit and still tire the reader. Notes on setting type on dark backgrounds.',
-      cat: 'design', author: 'adeniyi', date: '2026-11-04',
-      body: [
-        ['p', 'The Web Content Accessibility Guidelines ask for a contrast ratio of at least 4.5 to 1 for body text and 3 to 1 for large text. Those figures are a floor. On a dark page they are easy to clear in ways that still make reading harder than it should be.'],
-        ['h', 'Pure white is too much light'],
-        ['p', 'White text on a black ground scores 21 to 1, the highest ratio the formula can produce. On a bright screen in a dim room, that is a great deal of light aimed straight at the reader, and thin strokes seem to bloom into the dark around them. Readers call it glare. Pulling the text to an off-white, and the ground to a near-black with a slight blue lean, keeps the ratio above 12 to 1 while letting the letters hold their shape.'],
-        ['h', 'Weight changes with the ground'],
-        ['p', 'Light type on a dark ground tends to look a little bolder than the same type in black on white. Heavy weights can clog small counters, and hairline weights shimmer. A regular weight, tested at the size readers will actually see, usually sits between the two problems.'],
-        ['q', 'A ratio tells you whether text can be read. It cannot tell you whether anyone will want to keep reading.'],
-        ['h', 'Accents need their own check'],
-        ['p', 'A saturated accent that works on white often vibrates on dark. Lower its saturation and raise its lightness until it sits comfortably beside the body text, then check it twice, once as text and once as a fill. The amber used on this site, `#e9b96e`, measures about 10.8 to 1 against its near-black ground, which makes it safe for small links as well as large buttons.'],
-        ['h', 'A short checklist'],
-        ['p', 'Before you ship a dark theme, read one full article on it, on a phone, at night. Then read it again at midday near a window. If either session leaves you rubbing your eyes, adjust the ground and the text color first, and the weight second.']
-      ]
-    },
-    {
-      slug: 'the-hundred-millisecond-rule',
-      title: 'The hundred millisecond rule',
-      deck: 'Why 100 ms, 1 second and 10 seconds still describe how interfaces feel, and what they mean for your budget.',
-      cat: 'engineering', author: 'adeniyi', date: '2026-10-28',
-      body: [
-        ['p', 'In his 1993 book *Usability Engineering*, Jakob Nielsen described three response-time limits that he traced to earlier research. About 0.1 seconds feels instantaneous. About 1 second keeps the user’s flow of thought unbroken. About 10 seconds is the most you get before attention wanders. Those numbers come from human perception, so they have not moved as hardware has.'],
-        ['h', 'What the browser measures now'],
-        ['p', 'Google’s Core Web Vitals turned part of this into a metric. Interaction to Next Paint, or INP, replaced First Input Delay in March 2024. A page is rated good when INP is 200 milliseconds or less at the 75th percentile of visits, and poor above 500 milliseconds.'],
-        ['p', 'Notice that 200 ms is twice Nielsen’s limit. The metric is a pass mark for a whole page, not a target for a button that should feel immediate. Treat it as the ceiling.'],
-        ['h', 'Spend the budget on purpose'],
-        ['p', 'A tap that has to feel instant gets about 100 ms for everything: input handling, state updates, layout and paint. Work out where those milliseconds go before you write the handler. Then put anything slow, such as a network call or a long list, behind visible feedback inside that first 100 ms.'],
-        ['c', `const t0 = performance.now();
-render(items);
-requestAnimationFrame(() => {
-  const ms = performance.now() - t0;
-  if (ms > 100) console.warn('render took ' + Math.round(ms) + ' ms');
-});`, 'JavaScript'],
-        ['p', 'The sketch above is a rough gauge. It stops at the next frame, so it misses part of paint and compositing. The Performance panel in your browser’s developer tools shows the full picture.'],
-        ['h', 'Measure first, then argue'],
-        ['p', 'Most arguments about speed end quickly once someone records a trace. Record one on a mid-range phone, not on the laptop you build with, and keep the budget visible where the whole team will see it.']
-      ]
-    },
-    {
-      slug: 'write-the-empty-state-first',
-      title: 'Write the empty state first',
-      deck: 'The first screen anyone sees has no data in it. Design that one before the others.',
-      cat: 'craft', author: 'adeniyi', date: '2026-10-21',
-      body: [
-        ['p', 'Every list, tracker and dashboard begins empty. Most teams design that state last, if at all, and the result is a blank rectangle with a spinner or a single gray sentence. It is also the one screen every new user is certain to see.'],
-        ['h', 'Three jobs'],
-        ['p', 'A good empty state does three things. It says what belongs here. It shows how to add the first item. And it hints at what the screen will look like once it is full.'],
-        ['p', 'Compare “Nothing to show” with “No invoices yet. Add one and it appears here with its due date and status.” The second version names the object, offers a next step and previews the result in a single line.'],
-        ['q', 'An empty screen is a promise about the full one.'],
-        ['h', 'Use real examples'],
-        ['p', 'When a tool is only for the person who opens it, a few clearly labeled sample rows can teach the layout faster than any copy. Label them as examples and make them easy to clear. When many people will fill the list, keep it honest and leave it empty, but give the empty state the same care as a full one.'],
-        ['h', 'Order of work'],
-        ['p', 'Sketch the empty state first, then the single-item state, then the full one. Problems with layout tend to show up in the first two, and they cost very little to fix there.']
-      ]
-    },
-    {
-      slug: 'routing-with-the-hash',
-      title: 'Routing with the hash',
-      deck: 'Small sites do not need a router. A location hash, one event and a lookup table cover most of it.',
-      cat: 'engineering', author: 'adeniyi', date: '2026-10-14',
-      body: [
-        ['p', 'A site with a handful of views does not need a routing library. The part of a URL after the `#` never reaches the server, so hash links work on any host with no configuration. Every change also adds a history entry, so the back button behaves the way people expect.'],
-        ['h', 'The whole router'],
-        ['p', 'Read `location.hash`, look the key up in a table, render, and listen for `hashchange`. That is the entire mechanism.'],
-        ['c', `const routes = {
-  home: renderHome,
-  about: renderAbout,
-};
-
-function route() {
-  const key = location.hash.slice(1) || 'home';
-  (routes[key] || renderNotFound)();
-  window.scrollTo(0, 0);
-}
-
-addEventListener('hashchange', route);
-route();`, 'JavaScript'],
-        ['h', 'Three details that matter'],
-        ['p', 'First, reset the scroll position after each render, because a new view should open at the top. Second, move focus to the new view’s main heading so keyboard and screen reader users land where sighted users do. Third, update `document.title` so history entries and browser tabs describe where you are.'],
-        ['h', 'Where it stops'],
-        ['p', 'Hash routing suits a few named views and a lookup by id. Once you need nested layouts, data loading per route or many dynamic paths, a proper router earns its weight. Until then, a short function you can read in one sitting is easier to keep.']
-      ]
-    },
-    {
-      slug: 'the-sixty-five-character-line',
-      title: 'The sixty-five character line',
-      deck: 'Robert Bringhurst put the ideal line at 66 characters. In CSS you can ask for it directly.',
-      cat: 'design', author: 'adeniyi', date: '2026-10-07',
-      body: [
-        ['p', 'In *The Elements of Typographic Style*, Robert Bringhurst calls a line of 45 to 75 characters satisfactory for a single-column page and 66 characters ideal. Much longer, and the eye struggles to find the start of the next line. Much shorter, and sentences break into fragments.'],
-        ['h', 'Ask for it in ch'],
-        ['p', 'The `ch` unit equals the width of the zero in the current font, so a measure set in `ch` scales with the type.'],
-        ['c', `.prose {
-  max-width: 65ch;
-  line-height: 1.6;
-}`, 'CSS'],
-        ['p', 'Because the zero is wider than the average lowercase letter in most faces, a 65ch box tends to hold slightly more than 65 characters of running text. If your face runs narrow, lower the number a little and look at the result.'],
-        ['h', 'Line height follows line length'],
-        ['p', 'A longer line needs more space between lines, so the eye can find its way back. Body text at 1.5 to 1.6 works for a 65-character measure. Shorten the line for a sidebar or a caption and the leading can tighten with it.'],
-        ['h', 'On small screens'],
-        ['p', 'Phones solve the problem for you, since a 360 pixel viewport at normal body size holds about 40 characters. The risk is on wide monitors, where an unconstrained paragraph can run past 150. Set the maximum, and leave the minimum alone.']
-      ]
-    },
-    {
-      slug: 'shipping-less',
-      title: 'Shipping less',
-      deck: 'Notes on removing a feature, and what the quiet afterward teaches.',
-      cat: 'notes', author: 'adeniyi', date: '2026-09-30',
-      body: [
-        ['p', 'Most of the work I am proud of this year is work I deleted. A settings page lost half its toggles. A dashboard lost two charts nobody could explain. A form lost a field that existed because one customer asked for it in 2019.'],
-        ['h', 'Every option is a promise'],
-        ['p', 'Each feature you ship comes with a promise to keep it working, to document it and to test it against every feature that arrives later. The cost of that promise grows quietly, and it is paid by whoever touches the code next.'],
-        ['h', 'How to decide'],
-        ['p', 'Before cutting something, I ask three questions. Who used it in the last ninety days? What do they do instead when it is gone? What would we build if we started today? If the third answer looks nothing like the current feature, the feature is a candidate.'],
-        ['q', 'Deleting code is the one refactor that almost always makes the next change cheaper.'],
-        ['p', 'After the cut, write a short note saying what changed and why. People forgive a removal they understand much faster than one they discover on their own.']
-      ]
-    },
-    {
-      slug: 'a-field-guide-to-focus-rings',
-      title: 'A field guide to focus rings',
-      deck: 'The ring is how keyboard users know where they are. Keep it, style it, and make sure a sticky header does not hide it.',
-      cat: 'craft', author: 'adeniyi', date: '2026-09-23',
-      body: [
-        ['p', 'A focus ring is the visible marker that shows keyboard and switch users which control will respond when they press a key. Removing it with `outline: none` and offering nothing in its place makes a page close to unusable for them.'],
-        ['h', 'Use focus-visible'],
-        ['p', 'The `:focus-visible` pseudo-class shows the ring when the browser judges that it helps, which in practice means keyboard focus and not mouse clicks. It removes the usual reason designers give for hiding outlines.'],
-        ['c', `:focus-visible {
-  outline: 2px solid #e9b96e;
-  outline-offset: 3px;
-}`, 'CSS'],
-        ['h', 'Make it visible against the ground'],
-        ['p', 'A ring needs contrast with whatever sits behind it. WCAG 2.1 asks for 3 to 1 against adjacent colors for interface components, under criterion 1.4.11, Non-text Contrast. On a dark page a light accent works well. Offset the ring a few pixels so it does not merge with the control’s own border.'],
-        ['h', 'Do not let the header cover it'],
-        ['p', 'WCAG 2.2 added criterion 2.4.11, Focus Not Obscured (Minimum), at level AA. A sticky header can hide a control that has just received focus. The fix is usually one line.'],
-        ['c', `html {
-  scroll-padding-top: 5.5rem; /* sticky header height, plus a little */
-}`, 'CSS'],
-        ['p', 'This site uses exactly that. Press Tab through any page and watch where the ring lands.']
-      ]
-    }
-  ];
+  /* Content lives in two files next to this page: site.json (settings) and posts.json (articles).
+     Edit them from the Pages CMS dashboard; this script only reads them. */
+  var SITE = {}, POSTS = [], TOPICS = [], READY = false;
 
   /* ---------- Helpers ---------- */
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
-  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const inline = s => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*([^*]+)\*/g, '<em>$1</em>');
-  const fmtDate = iso => new Date(iso + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-  const topicOf = id => TOPICS.find(t => t.id === id);
-  const initials = name => name.split(' ').map(w => w[0]).join('');
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const slugify = s => String(s || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const initials = name => String(name || '').split(/\s+/).filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
   const ARROW = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 8h9M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>';
+  const SEARCH = '<svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="5.5" fill="none" stroke="currentColor" stroke-width="1.6"></circle><path d="M12.2 12.2L16 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path></svg>';
 
-  POSTS.forEach(p => {
-    const text = [p.deck].concat(p.body.filter(b => b[0] !== 'c').map(b => b[1])).join(' ');
-    p.mins = Math.max(1, Math.round(text.split(/\s+/).length / 230));
-    p.hay = (p.title + ' ' + p.deck + ' ' + AUTHORS[p.author].name + ' ' + topicOf(p.cat).name + ' ' + text).toLowerCase();
-  });
+  function parseDate(v) {
+    if (!v) return null;
+    const s = String(v).trim();
+    const d = new Date(/^\d{4}-\d{2}-\d{2}$/.test(s) ? s + 'T12:00:00' : s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  const fmtDate = d => d ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+  const safeUrl = u => !/^\s*(javascript|data|vbscript):/i.test(u);
+
+  /* ---------- Load and prepare content ---------- */
+  function getJSON(name, optional) {
+    return fetch(name, { cache: 'no-cache' }).then(r => {
+      if (!r.ok) throw new Error(name + ' could not be loaded (status ' + r.status + ').');
+      return r.json();
+    }).catch(e => {
+      if (optional) return {};
+      throw e;
+    });
+  }
+
+  function prepare(site, posts) {
+    SITE = Object.assign({
+      name: 'Low Light', tagline: '', editor_name: '', editor_role: '', editor_bio: '', email: '',
+      about_title: 'About', about_intro: '', contact_text: '',
+      newsletter_name: 'The newsletter', newsletter_heading: 'Get new articles by email.', newsletter_text: '', newsletter_username: '',
+      topics: [], principles: []
+    }, site || {});
+    if (!Array.isArray(SITE.topics)) SITE.topics = [];
+    if (!Array.isArray(SITE.principles)) SITE.principles = [];
+
+    const used = {};
+    POSTS = (Array.isArray(posts) ? posts : [])
+      .filter(p => p && p.title && !(p.draft === true || p.draft === 'true'))
+      .map(p => {
+        const o = {};
+        o.title = String(p.title).trim();
+        let slug = slugify(p.slug || p.title) || 'entry', s = slug, n = 2;
+        while (used[s]) s = slug + '-' + n++;
+        used[s] = 1; o.slug = s;
+        o.deck = String(p.deck || '').trim();
+        o.topicName = String(p.topic || '').trim() || 'Notes';
+        o.topicId = slugify(o.topicName) || 'notes';
+        o.dateObj = parseDate(p.date);
+        o.body = String(p.body || '');
+        o.authorName = String(p.author || '').trim() || SITE.editor_name || '';
+        const words = (o.deck + ' ' + o.body.replace(/```[\s\S]*?```/g, ' ')).split(/\s+/).filter(Boolean).length;
+        o.mins = Math.max(1, Math.round(words / 230));
+        o.hay = (o.title + ' ' + o.deck + ' ' + o.authorName + ' ' + o.topicName + ' ' + o.body).toLowerCase();
+        return o;
+      });
+    POSTS.sort((a, b) => (b.dateObj ? b.dateObj.getTime() : 0) - (a.dateObj ? a.dateObj.getTime() : 0));
+
+    const blurbs = {}, seen = {};
+    TOPICS = [];
+    SITE.topics.forEach(t => { if (t && t.name) blurbs[slugify(t.name)] = String(t.blurb || ''); });
+    const add = (id, name) => { if (!seen[id]) { seen[id] = 1; TOPICS.push({ id: id, name: name, blurb: blurbs[id] || '' }); } };
+    const present = {};
+    POSTS.forEach(p => { if (!present[p.topicId]) present[p.topicId] = p.topicName; });
+    SITE.topics.forEach(t => { const id = t && t.name ? slugify(t.name) : ''; if (id && present[id]) add(id, String(t.name)); });
+    POSTS.forEach(p => add(p.topicId, p.topicName));
+  }
+  const topicOf = id => TOPICS.find(t => t.id === id);
+
+  /* ---------- Markdown, kept small on purpose ---------- */
+  function inl(s) {
+    let t = esc(s);
+    const codes = [];
+    t = t.replace(/`([^`]+)`/g, (m, c) => { codes.push(c); return '\u0000' + (codes.length - 1) + '\u0000'; });
+    t = t.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, txt, url) => {
+      if (!safeUrl(url)) return txt;
+      const ext = /^https?:/i.test(url);
+      return '<a href="' + url + '"' + (ext ? ' target="_blank" rel="noopener"' : '') + '>' + txt + '</a>';
+    });
+    t = t.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    t = t.replace(/(^|[^*])\*([^*\s][^*]*?)\*(?!\*)/g, '$1<em>$2</em>');
+    return t.replace(/\u0000(\d+)\u0000/g, (m, i) => '<code>' + codes[+i] + '</code>');
+  }
+
+  function mdBlocks(md) {
+    const L = String(md || '').replace(/\r\n?/g, '\n').split('\n');
+    const out = [];
+    const isStart = s => /^(```|#{1,6}\s|>|!\[[^\]]*\]\([^)]*\)\s*$|\s*[-*+]\s+|\s*\d+[.)]\s+)/.test(s);
+    let i = 0, m;
+    while (i < L.length) {
+      const line = L[i];
+      if (!line.trim()) { i++; continue; }
+      if ((m = line.match(/^```\s*([\w+#.-]*)/))) {
+        const code = [];
+        i++;
+        while (i < L.length && !/^```\s*$/.test(L[i])) { code.push(L[i]); i++; }
+        i++;
+        out.push({ t: 'code', lang: m[1], text: code.join('\n') });
+        continue;
+      }
+      if ((m = line.match(/^(#{1,6})\s+(.*?)\s*$/))) { out.push({ t: m[1].length <= 2 ? 'h2' : 'h3', text: m[2] }); i++; continue; }
+      if (/^>/.test(line)) {
+        const q = [];
+        while (i < L.length && /^>/.test(L[i])) { q.push(L[i].replace(/^>\s?/, '')); i++; }
+        out.push({ t: 'q', text: q.join(' ') });
+        continue;
+      }
+      if ((m = line.match(/^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)\s*$/))) { out.push({ t: 'img', alt: m[1], src: m[2], cap: m[3] || '' }); i++; continue; }
+      if (/^\s*[-*+]\s+/.test(line)) {
+        const items = [];
+        while (i < L.length && /^\s*[-*+]\s+/.test(L[i])) { items.push(L[i].replace(/^\s*[-*+]\s+/, '')); i++; }
+        out.push({ t: 'ul', items: items });
+        continue;
+      }
+      if (/^\s*\d+[.)]\s+/.test(line)) {
+        const items = [];
+        while (i < L.length && /^\s*\d+[.)]\s+/.test(L[i])) { items.push(L[i].replace(/^\s*\d+[.)]\s+/, '')); i++; }
+        out.push({ t: 'ol', items: items });
+        continue;
+      }
+      const para = [];
+      while (i < L.length && L[i].trim() && !(para.length && isStart(L[i]))) { para.push(L[i]); i++; }
+      out.push({ t: 'p', text: para.join('\n') });
+    }
+    return out;
+  }
+
+  const LANGS = { js: 'JavaScript', javascript: 'JavaScript', ts: 'TypeScript', typescript: 'TypeScript', css: 'CSS', html: 'HTML', json: 'JSON', bash: 'Shell', sh: 'Shell', shell: 'Shell', py: 'Python', python: 'Python' };
+
+  function renderBody(md) {
+    const heads = [];
+    let n = 0;
+    const html = mdBlocks(md).map(b => {
+      switch (b.t) {
+        case 'h2': n++; heads.push({ id: 's' + n, text: b.text }); return '<h2 id="s' + n + '">' + inl(b.text) + '</h2>';
+        case 'h3': return '<h3>' + inl(b.text) + '</h3>';
+        case 'q': return '<blockquote><p>' + inl(b.text) + '</p></blockquote>';
+        case 'code': {
+          const label = LANGS[b.lang.toLowerCase()] || (b.lang ? b.lang.toUpperCase() : 'Code');
+          return '<figure class="code"><figcaption><span>' + esc(label) + '</span><button type="button" class="copy" data-copy>Copy</button></figcaption><pre><code>' + esc(b.text) + '</code></pre></figure>';
+        }
+        case 'img':
+          if (!safeUrl(b.src)) return '';
+          return '<figure class="pic"><img src="' + esc(b.src) + '" alt="' + esc(b.alt) + '" loading="lazy">' + (b.cap ? '<figcaption>' + esc(b.cap) + '</figcaption>' : '') + '</figure>';
+        case 'ul': case 'ol': return '<' + b.t + '>' + b.items.map(x => '<li>' + inl(x) + '</li>').join('') + '</' + b.t + '>';
+        default: return '<p>' + inl(b.text).replace(/\n/g, '<br>') + '</p>';
+      }
+    }).join('');
+    return { html: html, heads: heads };
+  }
 
   /* ---------- Generated cover art: a dot field lit by one or two lamps ---------- */
   function hash(str) {
@@ -544,7 +544,7 @@ route();`, 'JavaScript'],
     const b = { x: (0.1 + 0.8 * r()) * W, y: (0.1 + 0.8 * r()) * H, k: (0.12 + 0.1 * r()) * W };
     const dots = [];
     for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) dots.push({ x: (i + 0.5) * step, y: (j + 0.5) * step });
-    return { W, H, a, b, dots };
+    return { W: W, H: H, a: a, b: b, dots: dots };
   }
   const glow = (x, y, s) => Math.exp(-(((x - s.x) ** 2) + ((y - s.y) ** 2)) / (2 * s.k * s.k));
   const intensity = (d, a, b) => Math.max(glow(d.x, d.y, a), 0.5 * glow(d.x, d.y, b));
@@ -584,55 +584,67 @@ route();`, 'JavaScript'],
 
   /* ---------- Parts ---------- */
   function metaLine(p, withTopic) {
-    return '<div class="meta">' + (withTopic ? '<span class="tag">' + esc(topicOf(p.cat).name) + '</span>' : '') +
-      '<span>' + fmtDate(p.date) + '</span><span>' + p.mins + ' min read</span></div>';
+    return '<div class="meta">' + (withTopic ? '<span class="tag">' + esc(p.topicName) + '</span>' : '') +
+      (p.dateObj ? '<span>' + fmtDate(p.dateObj) + '</span>' : '') + '<span>' + p.mins + ' min read</span></div>';
   }
   function card(p) {
     return '<a class="card" href="#post-' + p.slug + '"><div class="thumb">' + coverSVG(p.slug) + '</div>' +
-      metaLine(p, true) + '<h3>' + esc(p.title) + '</h3><p>' + esc(p.deck) + '</p></a>';
+      metaLine(p, true) + '<h3>' + esc(p.title) + '</h3>' + (p.deck ? '<p>' + esc(p.deck) + '</p>' : '') + '</a>';
   }
   function row(p) {
     return '<a class="row" href="#post-' + p.slug + '"><div class="thumb">' + coverSVG(p.slug) + '</div>' +
-      '<div class="row-body">' + metaLine(p, true) + '<h3>' + esc(p.title) + '</h3><p>' + esc(p.deck) + '</p></div></a>';
+      '<div class="row-body">' + metaLine(p, true) + '<h3>' + esc(p.title) + '</h3>' + (p.deck ? '<p>' + esc(p.deck) + '</p>' : '') + '</div></a>';
   }
-  function subscribeForm(id, full) {
-    return '<form class="sub" data-subscribe novalidate>' +
+  function newsUser() {
+    return String(SITE.newsletter_username || '').trim().replace(/^.*buttondown\.(?:com|email)\//i, '').replace(/[^\w-]/g, '');
+  }
+  function subscribeForm(id) {
+    return '<form class="sub" data-subscribe method="post" target="_blank" action="https://buttondown.com/api/emails/embed-subscribe/' + newsUser() + '" novalidate>' +
       '<div class="field"><label class="sr-only" for="' + id + '">Email address</label>' +
       '<input id="' + id + '" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required>' +
+      '<input type="hidden" name="embed" value="1">' +
       '<button class="btn" type="submit">Join the list</button></div>' +
-      '<input type="text" name="company" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px" >' +
       '<p class="form-msg" role="status" aria-live="polite"></p></form>';
   }
   function newsBand() {
+    if (!newsUser()) return '';
     return '<section class="band band-news"><div class="wrap news-grid"><div>' +
-      '<p class="kicker"><b>The Wednesday issue</b></p>' +
-      '<h2 class="h-section" style="margin-top:.6rem">One essay, every Wednesday.</h2>' +
-      '<p>The week’s piece in your inbox, with the two links we kept coming back to.</p></div>' +
-      '<div>' + subscribeForm('sub-band-email', false) + '</div></div></section>';
+      '<p class="kicker"><b>' + esc(SITE.newsletter_name) + '</b></p>' +
+      '<h2 class="h-section" style="margin-top:.6rem">' + esc(SITE.newsletter_heading) + '</h2>' +
+      (SITE.newsletter_text ? '<p>' + esc(SITE.newsletter_text) + '</p>' : '') + '</div>' +
+      '<div>' + subscribeForm('sub-band-email') + '</div></div></section>';
+  }
+  function emptyState(title, text) {
+    return '<div class="empty"><h3>' + esc(title) + '</h3><p>' + esc(text) + '</p></div>';
   }
 
   /* ---------- Views ---------- */
   function viewHome() {
+    if (!POSTS.length) {
+      return '<section class="page-head"><div class="wrap"><h1 class="h-page">' + esc(SITE.name) + '</h1>' +
+        (SITE.tagline ? '<p class="lede">' + esc(SITE.tagline) + '</p>' : '') +
+        '<div style="margin-top:2rem">' + emptyState('No articles yet.', 'Published articles appear here. Add the first one from your dashboard and it shows up on the next page load.') + '</div></div></section>';
+    }
     const f = POSTS[0];
     const latest = POSTS.slice(1, 5);
-    return '<h1 class="sr-only">Low Light, a journal about making things for the web</h1>' +
+    return '<h1 class="sr-only">' + esc(SITE.name + (SITE.tagline ? ', ' + SITE.tagline : '')) + '</h1>' +
       '<section class="hero"><div class="wrap hero-grid">' +
       '<div class="hero-copy">' +
-      '<p class="kicker"><b>Featured</b> · ' + esc(topicOf(f.cat).name) + '</p>' +
+      '<p class="kicker"><b>Featured</b> · ' + esc(f.topicName) + '</p>' +
       '<h2 class="hero-title"><a href="#post-' + f.slug + '">' + esc(f.title) + '</a></h2>' +
-      '<p class="hero-deck">' + esc(f.deck) + '</p>' +
-      '<div class="meta"><span>' + esc(AUTHORS[f.author].name) + '</span><span>' + fmtDate(f.date) + '</span><span>' + f.mins + ' min read</span></div>' +
+      (f.deck ? '<p class="hero-deck">' + esc(f.deck) + '</p>' : '') +
+      '<div class="meta">' + (f.authorName ? '<span>' + esc(f.authorName) + '</span>' : '') + (f.dateObj ? '<span>' + fmtDate(f.dateObj) + '</span>' : '') + '<span>' + f.mins + ' min read</span></div>' +
       '<a class="btn" href="#post-' + f.slug + '">Read the essay ' + ARROW + '</a></div>' +
       '<div class="hero-visual" id="lamp">' + coverSVG(f.slug, true) + '<span class="hint" aria-hidden="true">Move the light</span></div>' +
       '</div></section>' +
       '<section class="band band-line"><div class="wrap"><div class="section-head"><h2 class="h-section">Topics</h2></div><div class="topics">' +
       TOPICS.map(t => {
-        const n = POSTS.filter(p => p.cat === t.id).length;
-        return '<a class="topic" href="#journal-' + t.id + '"><span class="count">' + n + (n === 1 ? ' entry' : ' entries') + '</span><h3>' + esc(t.name) + '</h3><p>' + esc(t.blurb) + '</p></a>';
+        const n = POSTS.filter(p => p.topicId === t.id).length;
+        return '<a class="topic" href="#journal-' + t.id + '"><span class="count">' + plural(n, 'entry', 'entries') + '</span><h3>' + esc(t.name) + '</h3>' + (t.blurb ? '<p>' + esc(t.blurb) + '</p>' : '') + '</a>';
       }).join('') + '</div></div></section>' +
-      '<section class="band band-line"><div class="wrap"><div class="section-head"><h2 class="h-section">Latest</h2>' +
-      '<a class="more" href="#journal">All ' + POSTS.length + ' entries ' + ARROW + '</a></div>' +
-      '<div class="grid-2">' + latest.map(card).join('') + '</div></div></section>' +
+      (latest.length ? '<section class="band band-line"><div class="wrap"><div class="section-head"><h2 class="h-section">Latest</h2>' +
+        '<a class="more" href="#journal">All ' + POSTS.length + ' entries ' + ARROW + '</a></div>' +
+        '<div class="grid-2">' + latest.map(card).join('') + '</div></div></section>' : '') +
       newsBand();
   }
 
@@ -640,17 +652,18 @@ route();`, 'JavaScript'],
 
   function filtered() {
     const q = state.q.trim().toLowerCase();
-    return POSTS.filter(p => (!state.topic || p.cat === state.topic) && (!q || p.hay.indexOf(q) !== -1));
+    return POSTS.filter(p => (!state.topic || p.topicId === state.topic) && (!q || p.hay.indexOf(q) !== -1));
   }
   function resultsHtml() {
     const list = filtered();
     if (!list.length) {
+      if (!state.q.trim()) return emptyState('Nothing here yet.', 'No articles have been published in this topic.');
       return '<div class="empty"><h3>No entries match that search.</h3><p>Nothing in ' +
-        (state.topic ? esc(topicOf(state.topic).name) : 'the journal') + ' mentions <strong>' + esc(state.q.trim()) +
+        (state.topic && topicOf(state.topic) ? esc(topicOf(state.topic).name) : 'the journal') + ' mentions <strong>' + esc(state.q.trim()) +
         '</strong>. Try a shorter word, or clear the search to see everything.</p>' +
         '<button type="button" class="btn btn-ghost" data-clear>Clear search</button></div>';
     }
-    return '<p class="count-line">' + list.length + (list.length === 1 ? ' entry' : ' entries') + ', newest first</p>' + list.map(row).join('');
+    return '<p class="count-line">' + plural(list.length, 'entry', 'entries') + ', newest first</p>' + list.map(row).join('');
   }
   function renderResults() { const el = $('#results'); if (el) el.innerHTML = resultsHtml(); }
 
@@ -660,9 +673,8 @@ route();`, 'JavaScript'],
     return '<section class="page-head"><div class="wrap">' +
       '<p class="kicker">' + (t ? 'Journal · ' + esc(t.name) : 'Journal') + '</p>' +
       '<h1 class="h-page">' + (t ? esc(t.name) : 'Everything we’ve published') + '</h1>' +
-      '<p class="lede">' + (t ? esc(t.blurb) : POSTS.length + ' entries across four topics. One new essay arrives every Wednesday.') + '</p>' +
-      '<div class="tools"><label class="search"><span class="sr-only">Search entries</span>' +
-      '<svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="5.5" fill="none" stroke="currentColor" stroke-width="1.6"></circle><path d="M12.2 12.2L16 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path></svg>' +
+      '<p class="lede">' + (t ? esc(t.blurb || plural(POSTS.filter(p => p.topicId === t.id).length, 'entry', 'entries') + ' in this topic.') : plural(POSTS.length, 'entry', 'entries') + ' across ' + plural(TOPICS.length, 'topic', 'topics') + '.') + '</p>' +
+      '<div class="tools"><label class="search"><span class="sr-only">Search entries</span>' + SEARCH +
       '<input id="q" type="search" placeholder="Search titles and ideas" autocomplete="off"></label>' +
       '<nav class="chips" aria-label="Filter by topic"><a class="chip" href="#journal"' + (!t ? ' aria-current="page"' : '') + '>All</a>' +
       TOPICS.map(x => '<a class="chip" href="#journal-' + x.id + '"' + (t && t.id === x.id ? ' aria-current="page"' : '') + '>' + esc(x.name) + '</a>').join('') +
@@ -671,74 +683,66 @@ route();`, 'JavaScript'],
       newsBand();
   }
 
-  function proseHtml(p) {
-    let n = 0;
-    return p.body.map(b => {
-      if (b[0] === 'h') { n++; return '<h2 id="s' + n + '">' + inline(b[1]) + '</h2>'; }
-      if (b[0] === 'q') return '<blockquote><p>' + inline(b[1]) + '</p></blockquote>';
-      if (b[0] === 'c') return '<figure class="code"><figcaption><span>' + esc(b[2] || '') + '</span><button type="button" class="copy" data-copy>Copy</button></figcaption><pre><code>' + esc(b[1]) + '</code></pre></figure>';
-      return '<p>' + inline(b[1]) + '</p>';
-    }).join('');
-  }
-
   function viewPost(p) {
-    const a = AUTHORS[p.author], t = topicOf(p.cat);
+    const body = renderBody(p.body);
+    const isEd = p.authorName && p.authorName === SITE.editor_name;
+    const role = isEd ? SITE.editor_role : '', bio = isEd ? SITE.editor_bio : '';
     const i = POSTS.indexOf(p);
     const newer = POSTS[i - 1], older = POSTS[i + 1];
-    const heads = p.body.filter(b => b[0] === 'h');
-    let related = POSTS.filter(x => x !== p && x.cat === p.cat);
+    let related = POSTS.filter(x => x !== p && x.topicId === p.topicId);
     POSTS.forEach(x => { if (x !== p && related.indexOf(x) === -1 && related.length < 2) related.push(x); });
     related = related.slice(0, 2);
+    const who = p.authorName ? '<div class="by-who"><span class="avatar" aria-hidden="true">' + esc(initials(p.authorName)) + '</span><div><div class="by-name">' + esc(p.authorName) + '</div>' +
+      (role ? '<div class="meta"><span>' + esc(role) + '</span></div>' : '') + '</div></div>' : '';
     return '<article>' +
       '<div class="wrap post-head">' +
-      '<nav class="crumbs" aria-label="Breadcrumb"><a href="#journal">Journal</a><span aria-hidden="true">/</span><a href="#journal-' + t.id + '">' + esc(t.name) + '</a></nav>' +
+      '<nav class="crumbs" aria-label="Breadcrumb"><a href="#journal">Journal</a><span aria-hidden="true">/</span><a href="#journal-' + p.topicId + '">' + esc(p.topicName) + '</a></nav>' +
       '<h1 class="post-title">' + esc(p.title) + '</h1>' +
-      '<p class="post-deck">' + esc(p.deck) + '</p>' +
-      '<div class="byline"><div class="by-who"><span class="avatar" aria-hidden="true">' + esc(initials(a.name)) + '</span><div><div class="by-name">' + esc(a.name) + '</div><div class="meta"><span>' + esc(a.role) + '</span></div></div></div>' +
-      '<div class="meta"><span>' + fmtDate(p.date) + '</span><span>' + p.mins + ' min read</span></div></div>' +
+      (p.deck ? '<p class="post-deck">' + esc(p.deck) + '</p>' : '') +
+      '<div class="byline">' + who +
+      '<div class="meta">' + (p.dateObj ? '<span>' + fmtDate(p.dateObj) + '</span>' : '') + '<span>' + p.mins + ' min read</span></div></div>' +
       '</div>' +
       '<div class="wrap"><div class="thumb post-cover">' + coverSVG(p.slug) + '</div></div>' +
       '<div class="wrap post-grid">' +
-      '<aside class="toc" aria-label="In this piece"><p class="kicker">In this piece</p>' +
-      heads.map((h, k) => '<button type="button" data-jump="s' + (k + 1) + '">' + esc(h[1]) + '</button>').join('') + '</aside>' +
-      '<div><div class="prose" id="article">' + proseHtml(p) + '</div>' +
+      '<aside class="toc" aria-label="In this piece">' + (body.heads.length ? '<p class="kicker">In this piece</p>' +
+        body.heads.map(h => '<button type="button" data-jump="' + h.id + '">' + esc(h.text) + '</button>').join('') : '') + '</aside>' +
+      '<div><div class="prose" id="article">' + body.html + '</div>' +
       '<div class="share"><span class="kicker">Share</span><button type="button" class="btn btn-ghost btn-small" data-copylink>Copy link</button></div>' +
-      '<div class="author-box"><span class="avatar" aria-hidden="true">' + esc(initials(a.name)) + '</span><div><div class="by-name">' + esc(a.name) + '</div><div class="meta"><span>' + esc(a.role) + '</span></div><p>' + esc(a.bio) + '</p></div></div>' +
+      (p.authorName ? '<div class="author-box"><span class="avatar" aria-hidden="true">' + esc(initials(p.authorName)) + '</span><div><div class="by-name">' + esc(p.authorName) + '</div>' +
+        (role ? '<div class="meta"><span>' + esc(role) + '</span></div>' : '') + (bio ? '<p>' + esc(bio) + '</p>' : '') + '</div></div>' : '') +
       '<nav class="pn" aria-label="More entries">' +
       (newer ? '<a href="#post-' + newer.slug + '"><span class="kicker">Newer</span><strong>' + esc(newer.title) + '</strong></a>' : '<span></span>') +
       (older ? '<a href="#post-' + older.slug + '"><span class="kicker">Older</span><strong>' + esc(older.title) + '</strong></a>' : '<span></span>') +
       '</nav></div></div></article>' +
-      '<section class="band band-line"><div class="wrap"><div class="section-head"><h2 class="h-section">Keep reading</h2></div><div class="grid-2">' + related.map(card).join('') + '</div></div></section>' +
+      (related.length ? '<section class="band band-line"><div class="wrap"><div class="section-head"><h2 class="h-section">Keep reading</h2></div><div class="grid-2">' + related.map(card).join('') + '</div></div></section>' : '') +
       newsBand();
   }
 
   function viewAbout() {
+    const n = POSTS.filter(p => p.authorName === SITE.editor_name).length;
+    const mail = SITE.email;
     return '<section class="page-head"><div class="wrap"><p class="kicker">About</p>' +
-      '<h1 class="h-page">A small journal for people who make things for the web.</h1>' +
-      '<p class="lede">Low Light publishes one essay a week on design, engineering and the habits that make both better. We write for people who read at night, on phones, between other things.</p></div></section>' +
-      '<section class="band band-line"><div class="wrap"><div class="section-head"><h2 class="h-section">How we work</h2></div><div class="principles">' +
-      '<div><h3>One idea per piece</h3><p>Each entry argues for a single thing and stops when it has.</p></div>' +
-      '<div><h3>Numbers we can show</h3><p>We name the thresholds, units and sources we rely on, so you can check them.</p></div>' +
-      '<div><h3>Readable first</h3><p>Every page is read on a phone, in the dark, before it is published.</p></div>' +
-      '</div></div></section>' +
-      '<section class="band band-line"><div class="wrap"><div class="section-head"><h2 class="h-section">The editor</h2></div><div class="people">' +
-      Object.keys(AUTHORS).map(k => {
-        const a = AUTHORS[k], n = POSTS.filter(p => p.author === k).length;
-        return '<div class="person"><span class="avatar" aria-hidden="true">' + esc(initials(a.name)) + '</span><div><h3>' + esc(a.name) + '</h3><div class="meta"><span>' + esc(a.role) + '</span><span>' + n + (n === 1 ? ' entry' : ' entries') + '</span></div></div><p>' + esc(a.bio) + '</p></div>';
-      }).join('') + '</div></div></section>' +
-      '<section class="band band-line"><div class="wrap two-col"><h2 class="h-section">Get in touch</h2><div class="body">' +
-      '<p>Write with questions, corrections or an idea for an essay. A short note is plenty.</p>' +
-      '<div class="mail"><code>adendan62@outlook.com</code><button type="button" class="btn btn-ghost btn-small" data-copytext="adendan62@outlook.com">Copy address</button></div></div></div></section>' +
+      '<h1 class="h-page">' + esc(SITE.about_title) + '</h1>' +
+      (SITE.about_intro ? '<p class="lede">' + esc(SITE.about_intro) + '</p>' : '') + '</div></section>' +
+      (SITE.principles.length ? '<section class="band band-line"><div class="wrap"><div class="section-head"><h2 class="h-section">How we work</h2></div><div class="principles">' +
+        SITE.principles.map(x => '<div><h3>' + esc(x && x.title) + '</h3><p>' + esc(x && x.text) + '</p></div>').join('') + '</div></div></section>' : '') +
+      (SITE.editor_name ? '<section class="band band-line"><div class="wrap"><div class="section-head"><h2 class="h-section">The editor</h2></div><div class="people">' +
+        '<div class="person"><span class="avatar" aria-hidden="true">' + esc(initials(SITE.editor_name)) + '</span><div><h3>' + esc(SITE.editor_name) + '</h3><div class="meta">' +
+        (SITE.editor_role ? '<span>' + esc(SITE.editor_role) + '</span>' : '') + '<span>' + plural(n, 'entry', 'entries') + '</span></div></div>' +
+        (SITE.editor_bio ? '<p>' + esc(SITE.editor_bio) + '</p>' : '') + '</div></div></div></section>' : '') +
+      (mail ? '<section class="band band-line"><div class="wrap two-col"><h2 class="h-section">Get in touch</h2><div class="body">' +
+        (SITE.contact_text ? '<p>' + esc(SITE.contact_text) + '</p>' : '') +
+        '<div class="mail"><code>' + esc(mail) + '</code><button type="button" class="btn btn-ghost btn-small" data-copytext="' + esc(mail) + '">Copy address</button></div></div></div></section>' : '') +
       '<section class="band band-line"><div class="wrap two-col"><h2 class="h-section">Colophon</h2><div class="body">' +
       '<p>Set in Bricolage Grotesque for headings, Newsreader for reading and JetBrains Mono for details. The cover art on every entry is generated from the entry’s title, so no two are alike.</p></div></div></section>';
   }
 
   function viewSubscribe() {
     return '<section class="page-head"><div class="wrap"><p class="kicker">Subscribe</p>' +
-      '<h1 class="h-page">The Wednesday issue</h1>' +
-      '<p class="lede">One essay a week, plus the two links we kept coming back to. Choose the topics you want and leave the rest.</p>' +
-      '<div class="sub-page">' + subscribeForm('sub-page-email', true) + '</div></div></section>' +
-      '<section class="band band-line"><div class="wrap"><div class="section-head"><h2 class="h-section">Recent issues</h2></div><div class="grid-2">' + POSTS.slice(0, 2).map(card).join('') + '</div></div></section>';
+      '<h1 class="h-page">' + esc(SITE.newsletter_name) + '</h1>' +
+      '<p class="lede">' + esc(SITE.newsletter_text || SITE.newsletter_heading) + '</p>' +
+      '<div class="sub-page">' + subscribeForm('sub-page-email') + '</div></div></section>' +
+      (POSTS.length ? '<section class="band band-line"><div class="wrap"><div class="section-head"><h2 class="h-section">Recent issues</h2></div><div class="grid-2">' + POSTS.slice(0, 2).map(card).join('') + '</div></div></section>' : '');
   }
 
   function viewMissing() {
@@ -748,30 +752,51 @@ route();`, 'JavaScript'],
       '<p style="margin-top:1.5rem;display:flex;gap:.75rem;flex-wrap:wrap"><a class="btn" href="#home">Back to the front page</a><a class="btn btn-ghost" href="#journal">Browse the journal</a></p></div></section>';
   }
 
-  /* ---------- Footer ---------- */
-  $('#foot').innerHTML = '<div class="wrap"><div class="foot-grid">' +
-    '<div><a class="brand" href="#home">Low Light</a><p>A journal about making things for the web, edited by Adeniyi Daniel. New essay every Wednesday.</p></div>' +
-    '<div><h2>Read</h2><ul><li><a href="#journal">All entries</a></li>' +
-    TOPICS.map(t => '<li><a href="#journal-' + t.id + '">' + esc(t.name) + '</a></li>').join('') + '</ul></div>' +
-    '<div><h2>Site</h2><ul><li><a href="#about">About</a></li><li><a href="#subscribe">Subscribe</a></li></ul></div>' +
-    '</div><div class="legal"><span>© 2026 Adeniyi Daniel</span><span>adendan62@outlook.com</span></div></div>';
+  function viewError(err) {
+    const local = location.protocol === 'file:';
+    const syntax = err && err.name === 'SyntaxError';
+    let msg;
+    if (local) msg = 'This page was opened as a file on your device, and the browser blocks it from reading the article files. Open it from its web address instead.';
+    else if (syntax) msg = 'One of the content files could not be read. If it was edited by hand, look for a missing comma, quote or bracket. Edits made in the dashboard are always valid.';
+    else msg = 'The article files did not load. Check your connection and try again.';
+    return '<section class="page-head"><div class="wrap"><p class="kicker">Problem</p>' +
+      '<h1 class="h-page">The site could not load its articles.</h1>' +
+      '<p class="lede">' + esc(msg) + '</p>' +
+      '<p style="margin-top:1.5rem"><button type="button" class="btn" data-reload>Try again</button></p>' +
+      (err && err.message ? '<p class="count-line" style="margin-top:1.5rem">' + esc(err.message) + '</p>' : '') + '</div></section>';
+  }
+
+  /* ---------- Header and footer ---------- */
+  function chrome() {
+    $('#brandName').textContent = SITE.name;
+    $('#subscribeLink').hidden = !newsUser();
+    $('#brandLink').setAttribute('aria-label', SITE.name + ', home');
+    $('#foot').innerHTML = '<div class="wrap"><div class="foot-grid">' +
+      '<div><a class="brand" href="#home">' + esc(SITE.name) + '</a>' + (SITE.tagline ? '<p>' + esc(SITE.tagline) + (SITE.editor_name ? ' Edited by ' + esc(SITE.editor_name) + '.' : '') + '</p>' : '') + '</div>' +
+      '<div><h2>Read</h2><ul><li><a href="#journal">All entries</a></li>' +
+      TOPICS.map(t => '<li><a href="#journal-' + t.id + '">' + esc(t.name) + '</a></li>').join('') + '</ul></div>' +
+      '<div><h2>Site</h2><ul><li><a href="#about">About</a></li>' + (newsUser() ? '<li><a href="#subscribe">Subscribe</a></li>' : '') + '</ul></div>' +
+      '</div><div class="legal"><span>© ' + new Date().getFullYear() + ' ' + esc(SITE.editor_name || SITE.name) + '</span>' +
+      (SITE.email ? '<span>' + esc(SITE.email) + '</span>' : '') + '</div></div>';
+  }
 
   /* ---------- Router ---------- */
   function resolve() {
     const key = (location.hash || '').slice(1) || 'home';
-    if (key === 'home') return { nav: 'home', title: 'Low Light', html: viewHome() };
-    if (key === 'journal') return { nav: 'journal', title: 'Journal · Low Light', html: viewJournal(null) };
+    const name = SITE.name;
+    if (key === 'home') return { nav: 'home', title: name, html: viewHome() };
+    if (key === 'journal') return { nav: 'journal', title: 'Journal · ' + name, html: viewJournal(null) };
     if (key.indexOf('journal-') === 0) {
       const t = topicOf(key.slice(8));
-      if (t) return { nav: 'journal', title: t.name + ' · Low Light', html: viewJournal(t.id) };
+      if (t) return { nav: 'journal', title: t.name + ' · ' + name, html: viewJournal(t.id) };
     }
-    if (key === 'about') return { nav: 'about', title: 'About · Low Light', html: viewAbout() };
-    if (key === 'subscribe') return { nav: 'subscribe', title: 'Subscribe · Low Light', html: viewSubscribe() };
+    if (key === 'about') return { nav: 'about', title: 'About · ' + name, html: viewAbout() };
+    if (key === 'subscribe' && newsUser()) return { nav: 'subscribe', title: 'Subscribe · ' + name, html: viewSubscribe() };
     if (key.indexOf('post-') === 0) {
       const p = POSTS.find(x => x.slug === key.slice(5));
-      if (p) return { nav: 'journal', title: p.title + ' · Low Light', html: viewPost(p), post: true };
+      if (p) return { nav: 'journal', title: p.title + ' · ' + name, html: viewPost(p), post: true };
     }
-    return { nav: '', title: 'Not found · Low Light', html: viewMissing() };
+    return { nav: '', title: 'Not found · ' + name, html: viewMissing() };
   }
 
   function render(initial) {
@@ -847,18 +872,20 @@ route();`, 'JavaScript'],
     const t = e.target.closest('button, [data-jump]');
     if (!t) return;
     if (t.id === 'searchBtn') {
+      if (!READY) return;
       const q = $('#q');
       if (q) { q.focus(); q.scrollIntoView({ block: 'center' }); }
       else { state.focusSearch = true; location.hash = 'journal'; }
     } else if (t.id === 'skip') {
       const h = $('#main h1');
       if (h) { h.setAttribute('tabindex', '-1'); h.focus(); }
+    } else if (t.hasAttribute('data-reload')) {
+      location.reload();
     } else if (t.hasAttribute('data-jump')) {
       const el = document.getElementById(t.dataset.jump);
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else if (t.hasAttribute('data-copy')) {
-      const code = t.closest('.code').querySelector('code');
-      copyText(code.textContent, t);
+      copyText(t.closest('.code').querySelector('code').textContent, t);
     } else if (t.hasAttribute('data-copylink')) {
       copyText(location.href, t);
     } else if (t.hasAttribute('data-copytext')) {
@@ -874,56 +901,38 @@ route();`, 'JavaScript'],
     if (e.target.id === 'q') { state.q = e.target.value; renderResults(); }
   });
 
-  document.addEventListener('submit', async e => {
+  document.addEventListener('submit', e => {
     const form = e.target.closest('form[data-subscribe]');
     if (!form) return;
-    e.preventDefault();
-
-    const input = $('input[name="email"]', form);
+    const input = $('input[type="email"]', form);
     const msg = $('.form-msg', form);
-    const button = $('button[type="submit"]', form);
-    const email = input.value.trim();
-    const honeypot = $('input[name="company"]', form);
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value.trim())) {
+      e.preventDefault();
       input.setAttribute('aria-invalid', 'true');
       msg.className = 'form-msg err';
       msg.textContent = 'Enter a valid email address.';
       input.focus();
       return;
     }
-
+    /* Valid: let the browser post the form to Buttondown. Its confirmation opens in a new tab. */
     input.removeAttribute('aria-invalid');
-    button.disabled = true;
-    button.textContent = 'Adding…';
     msg.className = 'form-msg';
-    msg.textContent = 'Please wait…';
-
-    try {
-      const response = await fetch('/.netlify/functions/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, company: honeypot ? honeypot.value : '' })
-      });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(result.error || 'Subscription failed. Please try again.');
-
-      const box = document.createElement('div');
-      box.className = 'thanks';
-      const h = document.createElement('h3'); h.textContent = 'You’re on the list.';
-      const p = document.createElement('p'); p.textContent = 'Thanks for subscribing to Low Light. Your email address has been added successfully.';
-      box.appendChild(h); box.appendChild(p);
-      form.replaceWith(box);
-    } catch (error) {
-      msg.className = 'form-msg err';
-      msg.textContent = error.message || 'Something went wrong. Please try again.';
-      button.disabled = false;
-      button.textContent = 'Join the list';
-    }
+    msg.textContent = 'Almost there. Finish signing up in the new tab.';
+    setTimeout(() => { input.value = ''; }, 400);
   });
 
-  window.addEventListener('hashchange', () => render(false));
-  render(true);
+  window.addEventListener('hashchange', () => { if (READY) render(false); });
+
+  /* ---------- Start ---------- */
+  Promise.all([getJSON('site.json', true), getJSON('posts.json', false)]).then(res => {
+    prepare(res[0], res[1]);
+    READY = true;
+    chrome();
+    render(true);
+  }).catch(err => {
+    $('#main').innerHTML = viewError(err);
+    document.title = 'Problem loading · Low Light';
+  });
 })();
 </script>
 </body>

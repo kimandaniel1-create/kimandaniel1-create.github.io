@@ -1,0 +1,119 @@
+media:
+  input: media
+  output: /media
+content:
+  - name: posts
+    label: Articles
+    type: file
+    path: posts.json
+    format: json
+    list: true
+    fields:
+      - name: title
+        label: Title
+        type: string
+        required: true
+      - name: deck
+        label: Summary
+        type: text
+        description: One or two sentences shown under the title and on article cards.
+      - name: topic
+        label: Topic
+        type: string
+        description: Spell it the same way every time, for example Photography. Articles with the same topic are grouped together.
+      - name: date
+        label: Date
+        type: date
+        options:
+          format: yyyy-MM-dd
+      - name: body
+        label: Article
+        type: text
+        description: >-
+          Leave a blank line between paragraphs. Start a line with ## for a
+          heading, > for a pull quote, or - for a bullet. To add a photo,
+          upload it in the Media section, then write ![What it shows](/media/photo.jpg)
+          on its own line.
+      - name: draft
+        label: Draft
+        type: boolean
+        default: false
+        description: Turn on to keep this article off the site until it is ready.
+      - name: author
+        label: Author
+        type: string
+        description: Leave empty to use the editor name from Site settings.
+      - name: slug
+        label: Link name
+        type: string
+        description: Leave empty to build the link from the title. Use lowercase letters and hyphens.
+  - name: site
+    label: Site settings
+    type: file
+    path: site.json
+    format: json
+    fields:
+      - name: name
+        label: Site name
+        type: string
+      - name: tagline
+        label: Tagline
+        type: string
+        description: Shown in the footer.
+      - name: editor_name
+        label: Your name
+        type: string
+      - name: editor_role
+        label: Your role
+        type: string
+      - name: editor_bio
+        label: Short bio
+        type: text
+      - name: email
+        label: Contact email
+        type: string
+      - name: about_title
+        label: About page headline
+        type: string
+      - name: about_intro
+        label: About page introduction
+        type: text
+      - name: contact_text
+        label: Contact message
+        type: text
+      - name: newsletter_name
+        label: Newsletter name
+        type: string
+      - name: newsletter_heading
+        label: Newsletter headline
+        type: string
+      - name: newsletter_text
+        label: Newsletter description
+        type: text
+      - name: newsletter_username
+        label: Buttondown username
+        type: string
+        description: Your username from buttondown.com. Leave empty to hide the sign-up form and the Subscribe link.
+      - name: topics
+        label: Topic descriptions
+        type: object
+        list: true
+        description: Optional. Add a short description under each topic name on the front page.
+        fields:
+          - name: name
+            label: Topic name
+            type: string
+          - name: blurb
+            label: Description
+            type: text
+      - name: principles
+        label: About page points
+        type: object
+        list: true
+        fields:
+          - name: title
+            label: Title
+            type: string
+          - name: text
+            label: Text
+            type: text

@@ -1,0 +1,47 @@
+{
+  "name": "Low Light",
+  "tagline": "A journal about making things for the web.",
+  "editor_name": "Adeniyi Daniel",
+  "editor_role": "Editor and author",
+  "editor_bio": "Writes about design, performance and the habits behind good work, and edits Low Light.",
+  "email": "adendan62@outlook.com",
+  "about_title": "A small journal for people who make things for the web.",
+  "about_intro": "Low Light publishes one essay a week on design, engineering and the habits that make both better. We write for people who read at night, on phones, between other things.",
+  "contact_text": "Write with questions, corrections or an idea for an essay. A short note is plenty.",
+  "newsletter_name": "The Wednesday issue",
+  "newsletter_heading": "One essay, every Wednesday.",
+  "newsletter_text": "The week’s piece in your inbox, with the two links we kept coming back to.",
+  "newsletter_username": "",
+  "topics": [
+    {
+      "name": "Design",
+      "blurb": "Type, color and layout, tuned for reading comfort."
+    },
+    {
+      "name": "Engineering",
+      "blurb": "Performance budgets, routing, and code you can read in one sitting."
+    },
+    {
+      "name": "Craft",
+      "blurb": "Small interface details, from focus rings to empty states."
+    },
+    {
+      "name": "Notes",
+      "blurb": "Short pieces on working habits and decisions along the way."
+    }
+  ],
+  "principles": [
+    {
+      "title": "One idea per piece",
+      "text": "Each entry argues for a single thing and stops when it has."
+    },
+    {
+      "title": "Numbers we can show",
+      "text": "We name the thresholds, units and sources we rely on, so you can check them."
+    },
+    {
+      "title": "Readable first",
+      "text": "Every page is read on a phone, in the dark, before it is published."
+    }
+  ]
+}

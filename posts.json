@@ -1,0 +1,58 @@
+[
+  {
+    "title": "Contrast is not a number",
+    "deck": "A ratio can pass an audit and still tire the reader. Notes on setting type on dark backgrounds.",
+    "topic": "Design",
+    "date": "2026-11-04",
+    "body": "The Web Content Accessibility Guidelines ask for a contrast ratio of at least 4.5 to 1 for body text and 3 to 1 for large text. Those figures are a floor. On a dark page they are easy to clear in ways that still make reading harder than it should be.\n\n## Pure white is too much light\n\nWhite text on a black ground scores 21 to 1, the highest ratio the formula can produce. On a bright screen in a dim room, that is a great deal of light aimed straight at the reader, and thin strokes seem to bloom into the dark around them. Readers call it glare. Pulling the text to an off-white, and the ground to a near-black with a slight blue lean, keeps the ratio above 12 to 1 while letting the letters hold their shape.\n\n## Weight changes with the ground\n\nLight type on a dark ground tends to look a little bolder than the same type in black on white. Heavy weights can clog small counters, and hairline weights shimmer. A regular weight, tested at the size readers will actually see, usually sits between the two problems.\n\n> A ratio tells you whether text can be read. It cannot tell you whether anyone will want to keep reading.\n\n## Accents need their own check\n\nA saturated accent that works on white often vibrates on dark. Lower its saturation and raise its lightness until it sits comfortably beside the body text, then check it twice, once as text and once as a fill. The amber used on this site, `#e9b96e`, measures about 10.8 to 1 against its near-black ground, which makes it safe for small links as well as large buttons.\n\n## A short checklist\n\nBefore you ship a dark theme, read one full article on it, on a phone, at night. Then read it again at midday near a window. If either session leaves you rubbing your eyes, adjust the ground and the text color first, and the weight second.",
+    "draft": false
+  },
+  {
+    "title": "The hundred millisecond rule",
+    "deck": "Why 100 ms, 1 second and 10 seconds still describe how interfaces feel, and what they mean for your budget.",
+    "topic": "Engineering",
+    "date": "2026-10-28",
+    "body": "In his 1993 book *Usability Engineering*, Jakob Nielsen described three response-time limits that he traced to earlier research. About 0.1 seconds feels instantaneous. About 1 second keeps the user’s flow of thought unbroken. About 10 seconds is the most you get before attention wanders. Those numbers come from human perception, so they have not moved as hardware has.\n\n## What the browser measures now\n\nGoogle’s Core Web Vitals turned part of this into a metric. Interaction to Next Paint, or INP, replaced First Input Delay in March 2024. A page is rated good when INP is 200 milliseconds or less at the 75th percentile of visits, and poor above 500 milliseconds.\n\nNotice that 200 ms is twice Nielsen’s limit. The metric is a pass mark for a whole page, not a target for a button that should feel immediate. Treat it as the ceiling.\n\n## Spend the budget on purpose\n\nA tap that has to feel instant gets about 100 ms for everything: input handling, state updates, layout and paint. Work out where those milliseconds go before you write the handler. Then put anything slow, such as a network call or a long list, behind visible feedback inside that first 100 ms.\n\n```javascript\nconst t0 = performance.now();\nrender(items);\nrequestAnimationFrame(() => {\n  const ms = performance.now() - t0;\n  if (ms > 100) console.warn('render took ' + Math.round(ms) + ' ms');\n});\n```\n\nThe sketch above is a rough gauge. It stops at the next frame, so it misses part of paint and compositing. The Performance panel in your browser’s developer tools shows the full picture.\n\n## Measure first, then argue\n\nMost arguments about speed end quickly once someone records a trace. Record one on a mid-range phone, not on the laptop you build with, and keep the budget visible where the whole team will see it.",
+    "draft": false
+  },
+  {
+    "title": "Write the empty state first",
+    "deck": "The first screen anyone sees has no data in it. Design that one before the others.",
+    "topic": "Craft",
+    "date": "2026-10-21",
+    "body": "Every list, tracker and dashboard begins empty. Most teams design that state last, if at all, and the result is a blank rectangle with a spinner or a single gray sentence. It is also the one screen every new user is certain to see.\n\n## Three jobs\n\nA good empty state does three things. It says what belongs here. It shows how to add the first item. And it hints at what the screen will look like once it is full.\n\nCompare “Nothing to show” with “No invoices yet. Add one and it appears here with its due date and status.” The second version names the object, offers a next step and previews the result in a single line.\n\n> An empty screen is a promise about the full one.\n\n## Use real examples\n\nWhen a tool is only for the person who opens it, a few clearly labeled sample rows can teach the layout faster than any copy. Label them as examples and make them easy to clear. When many people will fill the list, keep it honest and leave it empty, but give the empty state the same care as a full one.\n\n## Order of work\n\nSketch the empty state first, then the single-item state, then the full one. Problems with layout tend to show up in the first two, and they cost very little to fix there.",
+    "draft": false
+  },
+  {
+    "title": "Routing with the hash",
+    "deck": "Small sites do not need a router. A location hash, one event and a lookup table cover most of it.",
+    "topic": "Engineering",
+    "date": "2026-10-14",
+    "body": "A site with a handful of views does not need a routing library. The part of a URL after the `#` never reaches the server, so hash links work on any host with no configuration. Every change also adds a history entry, so the back button behaves the way people expect.\n\n## The whole router\n\nRead `location.hash`, look the key up in a table, render, and listen for `hashchange`. That is the entire mechanism.\n\n```javascript\nconst routes = {\n  home: renderHome,\n  about: renderAbout,\n};\n\nfunction route() {\n  const key = location.hash.slice(1) || 'home';\n  (routes[key] || renderNotFound)();\n  window.scrollTo(0, 0);\n}\n\naddEventListener('hashchange', route);\nroute();\n```\n\n## Three details that matter\n\nFirst, reset the scroll position after each render, because a new view should open at the top. Second, move focus to the new view’s main heading so keyboard and screen reader users land where sighted users do. Third, update `document.title` so history entries and browser tabs describe where you are.\n\n## Where it stops\n\nHash routing suits a few named views and a lookup by id. Once you need nested layouts, data loading per route or many dynamic paths, a proper router earns its weight. Until then, a short function you can read in one sitting is easier to keep.",
+    "draft": false
+  },
+  {
+    "title": "The sixty-five character line",
+    "deck": "Robert Bringhurst put the ideal line at 66 characters. In CSS you can ask for it directly.",
+    "topic": "Design",
+    "date": "2026-10-07",
+    "body": "In *The Elements of Typographic Style*, Robert Bringhurst calls a line of 45 to 75 characters satisfactory for a single-column page and 66 characters ideal. Much longer, and the eye struggles to find the start of the next line. Much shorter, and sentences break into fragments.\n\n## Ask for it in ch\n\nThe `ch` unit equals the width of the zero in the current font, so a measure set in `ch` scales with the type.\n\n```css\n.prose {\n  max-width: 65ch;\n  line-height: 1.6;\n}\n```\n\nBecause the zero is wider than the average lowercase letter in most faces, a 65ch box tends to hold slightly more than 65 characters of running text. If your face runs narrow, lower the number a little and look at the result.\n\n## Line height follows line length\n\nA longer line needs more space between lines, so the eye can find its way back. Body text at 1.5 to 1.6 works for a 65-character measure. Shorten the line for a sidebar or a caption and the leading can tighten with it.\n\n## On small screens\n\nPhones solve the problem for you, since a 360 pixel viewport at normal body size holds about 40 characters. The risk is on wide monitors, where an unconstrained paragraph can run past 150. Set the maximum, and leave the minimum alone.",
+    "draft": false
+  },
+  {
+    "title": "Shipping less",
+    "deck": "Notes on removing a feature, and what the quiet afterward teaches.",
+    "topic": "Notes",
+    "date": "2026-09-30",
+    "body": "Most of the work I am proud of this year is work I deleted. A settings page lost half its toggles. A dashboard lost two charts nobody could explain. A form lost a field that existed because one customer asked for it in 2019.\n\n## Every option is a promise\n\nEach feature you ship comes with a promise to keep it working, to document it and to test it against every feature that arrives later. The cost of that promise grows quietly, and it is paid by whoever touches the code next.\n\n## How to decide\n\nBefore cutting something, I ask three questions. Who used it in the last ninety days? What do they do instead when it is gone? What would we build if we started today? If the third answer looks nothing like the current feature, the feature is a candidate.\n\n> Deleting code is the one refactor that almost always makes the next change cheaper.\n\nAfter the cut, write a short note saying what changed and why. People forgive a removal they understand much faster than one they discover on their own.",
+    "draft": false
+  },
+  {
+    "title": "A field guide to focus rings",
+    "deck": "The ring is how keyboard users know where they are. Keep it, style it, and make sure a sticky header does not hide it.",
+    "topic": "Craft",
+    "date": "2026-09-23",
+    "body": "A focus ring is the visible marker that shows keyboard and switch users which control will respond when they press a key. Removing it with `outline: none` and offering nothing in its place makes a page close to unusable for them.\n\n## Use focus-visible\n\nThe `:focus-visible` pseudo-class shows the ring when the browser judges that it helps, which in practice means keyboard focus and not mouse clicks. It removes the usual reason designers give for hiding outlines.\n\n```css\n:focus-visible {\n  outline: 2px solid #e9b96e;\n  outline-offset: 3px;\n}\n```\n\n## Make it visible against the ground\n\nA ring needs contrast with whatever sits behind it. WCAG 2.1 asks for 3 to 1 against adjacent colors for interface components, under criterion 1.4.11, Non-text Contrast. On a dark page a light accent works well. Offset the ring a few pixels so it does not merge with the control’s own border.\n\n## Do not let the header cover it\n\nWCAG 2.2 added criterion 2.4.11, Focus Not Obscured (Minimum), at level AA. A sticky header can hide a control that has just received focus. The fix is usually one line.\n\n```css\nhtml {\n  scroll-padding-top: 5.5rem; /* sticky header height, plus a little */\n}\n```\n\nThis site uses exactly that. Press Tab through any page and watch where the ring lands.",
+    "draft": false
+  }
+]
