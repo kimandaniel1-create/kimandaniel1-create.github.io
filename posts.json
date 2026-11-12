@@ -162,6 +162,13 @@
       {
         "image": "/media/14x.jpg",
         "alt": "Abandoned building "
+      },
+      {
+        "image": "/media/9x.jpg"
+      },
+      {
+        "image": "/media/006.jpg",
+        "alt": "A black and white picture of a massive architecture "
       }
     ],
     "gallery_layout": "slider",
