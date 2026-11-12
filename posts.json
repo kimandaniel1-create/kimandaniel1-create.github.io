@@ -121,6 +121,9 @@
       {
         "image": "/media/11.jpg",
         "alt": "The Night on a wet street "
+      },
+      {
+        "image": "/media/thumb_206356_default_big.png"
       }
     ],
     "gallery_layout": "slider",
