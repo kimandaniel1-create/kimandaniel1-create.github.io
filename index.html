@@ -341,8 +341,6 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 .thanks h3 { margin: 0 0 .4rem; font-size: 1.375rem; letter-spacing: -.02em; }
 .thanks p { margin: 0 !important; font-size: 1.0625rem !important; }
 .sub-page { max-width: 34rem; margin-top: 2rem; }
-.sub-embed { width: 100%; }
-.buttondown-embed { display: block; width: 100%; min-height: 250px; height: 250px; border: 0; background: transparent; }
 
 /* Tags, sources and outside links */
 .tags { display: flex; flex-wrap: wrap; gap: .5rem; }
@@ -751,13 +749,12 @@ input[aria-invalid="true"] { border-color: var(--danger); }
     return String(SITE.newsletter_username || '').trim().replace(/^.*buttondown\.(?:com|email)\//i, '').replace(/[^\w-]/g, '');
   }
   function subscribeForm(id) {
-    const username = encodeURIComponent(newsUser());
-    return '<div class="sub sub-embed">' +
-      '<iframe class="buttondown-embed" title="Subscribe to ' + esc(SITE.newsletter_name || 'the newsletter') + '" ' +
-      'src="https://buttondown.com/' + username + '?as_embed=true" ' +
-      'loading="lazy" scrolling="no" ' +
-      'referrerpolicy="strict-origin-when-cross-origin"></iframe>' +
-      '<p class="form-msg" role="note">After signing up, check your inbox for a confirmation email.</p></div>';
+    return '<form class="sub" data-subscribe method="post" target="_blank" action="https://buttondown.com/api/emails/embed-subscribe/' + newsUser() + '" novalidate>' +
+      '<div class="field"><label class="sr-only" for="' + id + '">Email address</label>' +
+      '<input id="' + id + '" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required>' +
+      '<input type="hidden" name="embed" value="1">' +
+      '<button class="btn" type="submit">Join the list</button></div>' +
+      '<p class="form-msg" role="status" aria-live="polite"></p></form>';
   }
   function newsBand() {
     if (!newsUser()) return '';
@@ -1267,7 +1264,24 @@ input[aria-invalid="true"] { border-color: var(--danger); }
     if (e.target.id === 'q') { state.q = e.target.value; renderResults(); }
   });
 
-  /* Newsletter submission and confirmation are handled inside Buttondown's embedded frame. */
+  document.addEventListener('submit', e => {
+    const form = e.target.closest('form[data-subscribe]');
+    if (!form) return;
+    const input = $('input[type="email"]', form);
+    const msg = $('.form-msg', form);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value.trim())) {
+      e.preventDefault();
+      input.setAttribute('aria-invalid', 'true');
+      msg.className = 'form-msg err';
+      msg.textContent = 'Enter a valid email address.';
+      input.focus();
+      return;
+    }
+    input.removeAttribute('aria-invalid');
+    msg.className = 'form-msg';
+    msg.textContent = 'Almost there. Finish signing up in the new tab.';
+    setTimeout(() => { input.value = ''; }, 400);
+  });
 
   /* A cover image that fails to load falls back to the entry's generated dot field,
      so a wrong path or a blocked host never leaves an empty box. A gallery picture that fails
