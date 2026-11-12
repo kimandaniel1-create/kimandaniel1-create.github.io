@@ -55,9 +55,85 @@ content:
         type: text
         description: >-
           Leave a blank line between paragraphs. Start a line with ## for a
-          heading, > for a pull quote, or - for a bullet. To add a photo,
-          upload it in the Media section, then write ![What it shows](/media/photo.jpg)
-          on its own line.
+          heading, > for a pull quote, or - for a bullet. To add a single photo
+          inside the text, upload it in the Media section, then write
+          ![What it shows](/media/photo.jpg) on its own line. For several
+          photos, use the Image gallery below instead.
+      - name: gallery
+        label: Image gallery
+        type: object
+        list: true
+        description: Optional. Add pictures one at a time. They appear together inside the article, as a slider by default. Drag the items to change their order. With one picture, it is shown as a single image.
+        fields:
+          - name: image
+            label: Image
+            type: image
+          - name: alt
+            label: Description
+            type: string
+            description: A few words describing the picture, for screen readers. Also searchable.
+          - name: caption
+            label: Caption
+            type: string
+            description: Optional. Shown in small type under the picture.
+      - name: gallery_title
+        label: Gallery heading
+        type: string
+        description: Optional. A small label above the gallery, for example Selected frames. Leave empty for none.
+      - name: gallery_layout
+        label: Gallery style
+        type: select
+        default: slider
+        description: How the pictures are arranged.
+        options:
+          values:
+            - value: slider
+              label: Slider (one picture at a time, swipe or use the arrows)
+            - value: grid
+              label: Grid (two pictures per row)
+            - value: stack
+              label: Stacked (one under another)
+      - name: gallery_ratio
+        label: Picture shape
+        type: select
+        default: 16-10
+        description: The shape of each picture frame. Original keeps every picture's own shape, so it suits pictures that are all the same shape.
+        options:
+          values:
+            - value: 16-10
+              label: Wide (16:10)
+            - value: 4-3
+              label: Standard (4:3)
+            - value: 1-1
+              label: Square (1:1)
+            - value: 3-4
+              label: Portrait (3:4)
+            - value: auto
+              label: Original (no cropping)
+      - name: gallery_fit
+        label: Picture fit
+        type: select
+        default: cover
+        description: Fill crops the edges so the picture fills the frame. Whole picture shows all of it, with dark bars where the shapes differ.
+        options:
+          values:
+            - value: cover
+              label: Fill the frame
+            - value: contain
+              label: Show the whole picture
+      - name: gallery_position
+        label: Gallery position
+        type: select
+        default: after-intro
+        description: Where the gallery appears in the article.
+        options:
+          values:
+            - value: before
+              label: Above the text
+            - value: after-intro
+              label: After the first paragraph
+            - value: end
+              label: At the end of the text
       - name: sources
         label: Sources
         type: object

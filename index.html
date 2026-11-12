@@ -383,6 +383,43 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 .prose figure.pic img { display: block; width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); background: var(--bg-sunk); }
 .prose figure.pic figcaption { margin-top: .6rem; font: 400 .8125rem/1.5 var(--font-mono); color: var(--muted); }
 .loading { padding-block: clamp(4rem, 12vw, 8rem); }
+
+/* Image gallery inside an article
+   Three layouts share one frame: a slider (scroll-snap, so touch, trackpad and keyboard work natively),
+   a two-column grid and a plain stack. The dashboard picks the layout, the shape of the frame,
+   whether pictures fill it or sit inside it, and where the gallery appears.
+   Class names are chosen so they win over the .prose list rules without needing !important. */
+.gallery { margin: 2.2em 0; font-family: var(--font-display); font-size: 1rem; line-height: 1.5; color: var(--fg-soft); }
+.gallery.pos-before { margin: 0 0 2.2em; }
+.gal-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem 1rem; margin-bottom: .85rem; }
+.gal-title { color: var(--fg-soft); }
+.gal-tools { display: flex; align-items: center; gap: 1rem; margin-left: auto; }
+.gal-fig { margin: 0; display: flex; flex-direction: column; min-width: 0; }
+.gal-frame { position: relative; aspect-ratio: 16 / 10; max-height: min(80vh, 46rem); border: 1px solid var(--line); border-radius: 10px; background: var(--bg-sunk); overflow: hidden; }
+.gal-frame img { display: block; width: 100%; height: 100%; max-width: none; object-fit: cover; }
+.r-16-10 .gal-frame { aspect-ratio: 16 / 10; }
+.r-4-3 .gal-frame { aspect-ratio: 4 / 3; }
+.r-1-1 .gal-frame { aspect-ratio: 1 / 1; }
+.r-3-4 .gal-frame { aspect-ratio: 3 / 4; }
+.r-auto .gal-frame { aspect-ratio: auto; max-height: none; }
+.r-auto .gal-frame img { height: auto; }
+.fit-contain .gal-frame img { object-fit: contain; }
+.gal-cap { margin-top: .6rem; font: 400 .8125rem/1.5 var(--font-mono); color: var(--muted); }
+.gal-miss { position: absolute; inset: 0; display: grid; place-items: center; padding: 1rem; text-align: center; font: 400 .8125rem/1.4 var(--font-mono); color: var(--muted); }
+.r-auto .gal-miss { position: static; min-height: 8rem; }
+
+.gal-track { display: flex; gap: 1rem; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: none; border-radius: 10px; }
+.gal-track::-webkit-scrollbar { display: none; }
+.gal-slider .gal-fig { flex: 0 0 100%; scroll-snap-align: start; }
+.gal-dots { display: flex; flex-wrap: wrap; justify-content: center; margin-top: .5rem; }
+.gal-dot { width: 1.5rem; height: 1.5rem; padding: 0; display: grid; place-items: center; border: 0; background: none; cursor: pointer; }
+.gal-dot::before { content: ""; width: .5rem; height: .5rem; border-radius: 50%; border: 1px solid var(--line-strong); background: transparent; transition: background .15s, border-color .15s; }
+.gal-dot:hover::before { border-color: var(--accent); }
+.gal-dot[aria-current="true"]::before { background: var(--accent); border-color: var(--accent); }
+
+.gal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem 1rem; }
+@media (max-width: 560px) { .gal-grid { grid-template-columns: minmax(0, 1fr); } }
+.gal-stack { display: flex; flex-direction: column; gap: 1.5rem; }
 </style>
 </head>
 <body>
@@ -425,7 +462,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
   'use strict';
 
   var SITE = {}, POSTS = [], TOPICS = [], TAGS = [], HERO = null, READY = false;
-  var sliderRefresh = null;
+  var sliderRefresh = null, galleryRefresh = [];
 
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
@@ -446,6 +483,8 @@ input[aria-invalid="true"] { border-color: var(--danger); }
   }
   const fmtDate = d => d ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
   const safeUrl = u => !/^\s*(javascript|data|vbscript):/i.test(u);
+  // Returns the value when it is one of the allowed choices, otherwise the fallback. Keeps a typo in the JSON from breaking a page.
+  const pick = (v, allowed, fallback) => { const s = String(v == null ? '' : v).trim(); return allowed.indexOf(s) !== -1 ? s : fallback; };
 
   function getJSON(name, optional) {
     return fetch(name, { cache: 'no-cache' }).then(r => {
@@ -497,10 +536,23 @@ input[aria-invalid="true"] { border-color: var(--danger); }
           const url = String(x && x.url || '').trim();
           return { title: String(x && x.title || '').trim(), url: /^https?:\/\//i.test(url) ? url : '' };
         }).filter(x => x.title);
+
+        // Optional picture gallery shown inside the article. An item can be an object from the dashboard
+        // ({ image, alt, caption }) or a bare path written by hand. Items without a usable path are skipped.
+        o.gallery = (Array.isArray(p.gallery) ? p.gallery : []).map(x => {
+          const g = x && typeof x === 'object' ? x : { image: x };
+          return { src: String(g.image || g.src || '').trim(), alt: String(g.alt || '').trim(), cap: String(g.caption || '').trim() };
+        }).filter(g => g.src && safeUrl(g.src));
+        o.galleryTitle = String(p.gallery_title || '').trim();
+        o.galleryLayout = pick(p.gallery_layout, ['slider', 'grid', 'stack'], 'slider');
+        o.galleryRatio = pick(p.gallery_ratio, ['16-10', '4-3', '1-1', '3-4', 'auto'], '16-10');
+        o.galleryFit = pick(p.gallery_fit, ['cover', 'contain'], 'cover');
+        o.galleryPos = pick(p.gallery_position, ['before', 'after-intro', 'end'], 'after-intro');
+
         o.authorName = String(p.author || '').trim() || SITE.editor_name || '';
         const words = (o.deck + ' ' + o.body.replace(/```[\s\S]*?```/g, ' ')).split(/\s+/).filter(Boolean).length;
         o.mins = Math.max(1, Math.round(words / 230));
-        o.hay = (o.title + ' ' + o.deck + ' ' + o.authorName + ' ' + o.topicName + ' ' + o.tags.map(t => t.name).join(' ') + ' ' + o.body).toLowerCase();
+        o.hay = (o.title + ' ' + o.deck + ' ' + o.authorName + ' ' + o.topicName + ' ' + o.tags.map(t => t.name).join(' ') + ' ' + o.gallery.map(g => g.alt + ' ' + g.cap).join(' ') + ' ' + o.body).toLowerCase();
         return o;
       });
     POSTS.sort((a, b) => (b.dateObj ? b.dateObj.getTime() : 0) - (a.dateObj ? a.dateObj.getTime() : 0));
@@ -586,10 +638,13 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 
   const LANGS = { js: 'JavaScript', javascript: 'JavaScript', ts: 'TypeScript', typescript: 'TypeScript', css: 'CSS', html: 'HTML', json: 'JSON', bash: 'Shell', sh: 'Shell', shell: 'Shell', py: 'Python', python: 'Python' };
 
+  // Returns the article as separate blocks (parts) as well as one string, and the index of the first
+  // paragraph, so a gallery can be placed right after the opening paragraph.
   function renderBody(md) {
     const heads = [];
-    let n = 0;
-    const html = mdBlocks(md).map(b => {
+    let n = 0, intro = -1;
+    const parts = mdBlocks(md).map((b, idx) => {
+      if (b.t === 'p' && intro < 0) intro = idx;
       switch (b.t) {
         case 'h2': n++; heads.push({ id: 's' + n, text: b.text }); return '<h2 id="s' + n + '">' + inl(b.text) + '</h2>';
         case 'h3': return '<h3>' + inl(b.text) + '</h3>';
@@ -604,8 +659,8 @@ input[aria-invalid="true"] { border-color: var(--danger); }
         case 'ul': case 'ol': return '<' + b.t + '>' + b.items.map(x => '<li>' + inl(x) + '</li>').join('') + '</' + b.t + '>';
         default: return '<p>' + inl(b.text).replace(/\n/g, '<br>') + '</p>';
       }
-    }).join('');
-    return { html: html, heads: heads };
+    });
+    return { html: parts.join(''), heads: heads, parts: parts, intro: intro };
   }
 
   function hash(str) {
@@ -729,6 +784,55 @@ input[aria-invalid="true"] { border-color: var(--danger); }
         : esc(x.title)) + '</li>').join('') + '</ol></section>';
   }
 
+  /* ---------- Article gallery ----------
+     Built from the gallery fields of an entry. With no pictures it returns an empty string, so entries
+     without a gallery render exactly as before. One picture is always shown as a single figure, because
+     a slider with one slide has nothing to slide. */
+  function galleryHtml(p) {
+    const imgs = p.gallery;
+    if (!imgs.length) return '';
+    const layout = imgs.length === 1 && p.galleryLayout === 'slider' ? 'stack' : p.galleryLayout;
+    const slider = layout === 'slider';
+    const label = p.galleryTitle || 'Image gallery';
+
+    const fig = (g, i) => '<figure class="gal-fig"' +
+      (slider ? ' role="group" aria-roledescription="slide" aria-label="' + (i + 1) + ' of ' + imgs.length + '"' : '') + '>' +
+      '<div class="gal-frame"><img src="' + esc(g.src) + '" alt="' + esc(g.alt) + '" data-galimg loading="lazy" decoding="async"></div>' +
+      (g.cap ? '<figcaption class="gal-cap">' + esc(g.cap) + '</figcaption>' : '') + '</figure>';
+
+    const tools = slider
+      ? '<div class="gal-tools"><span class="slider-count gal-count" aria-hidden="true">1 of ' + imgs.length + '</span>' +
+        '<div class="slider-controls">' +
+        '<button type="button" class="slider-btn" data-gal="prev" aria-label="Previous image" disabled>' + CHEV_L + '</button>' +
+        '<button type="button" class="slider-btn" data-gal="next" aria-label="Next image">' + CHEV_R + '</button>' +
+        '</div></div>'
+      : '';
+    const head = p.galleryTitle || slider
+      ? '<div class="gal-head">' + (p.galleryTitle ? '<div class="kicker gal-title">' + esc(p.galleryTitle) + '</div>' : '') + tools + '</div>'
+      : '';
+    const dots = slider && imgs.length <= 10
+      ? '<div class="gal-dots">' + imgs.map((g, i) =>
+          '<button type="button" class="gal-dot" data-gal-dot="' + i + '" aria-label="Show image ' + (i + 1) + '"' + (i === 0 ? ' aria-current="true"' : '') + '></button>').join('') + '</div>'
+      : '';
+    const list = imgs.map(fig).join('');
+    const body = slider
+      ? '<div class="gal-track" tabindex="0" role="group" aria-label="' + esc(label) + ', use the arrow keys to move between images">' + list + '</div>'
+      : '<div class="gal-' + layout + '">' + list + '</div>';
+
+    return '<section class="gallery gal-' + layout + ' r-' + p.galleryRatio + ' fit-' + p.galleryFit + ' pos-' + p.galleryPos + '" data-gallery="' + layout + '" aria-label="' + esc(label) + '"' +
+      (slider ? ' aria-roledescription="carousel"' : '') + '>' + head + body + dots + '</section>';
+  }
+
+  // Decides where the gallery goes. "before" sits above the text, outside the prose block, so the opening
+  // paragraph keeps its larger lead style. The other two positions go inside the text.
+  function placeGallery(p, body) {
+    const g = galleryHtml(p);
+    if (!g) return { before: '', content: body.html };
+    if (p.galleryPos === 'before') return { before: g, content: body.html };
+    if (p.galleryPos === 'end' || body.intro < 0) return { before: '', content: body.html + g };
+    return { before: '', content: body.parts.slice(0, body.intro + 1).join('') + g + body.parts.slice(body.intro + 1).join('') };
+  }
+
   /* ---------- Image slider ----------
      Shows up to eight entries other than the hero, so the two never repeat each other.
      Covers come from renderPostVisual, so an entry with an image shows it and every other entry
@@ -809,6 +913,55 @@ input[aria-invalid="true"] { border-color: var(--danger); }
     update();
   }
 
+  /* Wires every gallery slider on the page: arrows, dots, the "2 of 5" counter, disabled ends and the
+     keyboard. One slide is shown at a time, so the current slide is simply the scroll position divided by
+     the slide width plus the gap. Rebuilt after each render, like the front page slider. */
+  function bindGalleries() {
+    galleryRefresh = [];
+    $$('[data-gallery="slider"]').forEach(box => {
+      const track = $('.gal-track', box);
+      const slides = track ? $$('.gal-fig', track) : [];
+      const prev = $('[data-gal="prev"]', box);
+      const next = $('[data-gal="next"]', box);
+      const count = $('.gal-count', box);
+      const dots = $$('[data-gal-dot]', box);
+      if (!track || slides.length < 2 || !prev || !next) return;
+      let raf = 0, current = 0;
+
+      const calm = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+      const step = () => (parseFloat(getComputedStyle(track).columnGap) || 0) + slides[0].getBoundingClientRect().width;
+
+      function update() {
+        raf = 0;
+        current = Math.max(0, Math.min(slides.length - 1, Math.round(track.scrollLeft / (step() || 1))));
+        prev.disabled = current === 0;
+        next.disabled = current === slides.length - 1;
+        if (count) count.textContent = (current + 1) + ' of ' + slides.length;
+        dots.forEach((d, i) => { if (i === current) d.setAttribute('aria-current', 'true'); else d.removeAttribute('aria-current'); });
+      }
+      function go(i) {
+        i = Math.max(0, Math.min(slides.length - 1, i));
+        track.scrollTo({ left: i * step(), behavior: calm() ? 'auto' : 'smooth' });
+      }
+
+      prev.addEventListener('click', () => go(current - 1));
+      next.addEventListener('click', () => go(current + 1));
+      dots.forEach(d => d.addEventListener('click', () => go(Number(d.getAttribute('data-gal-dot')))));
+      track.addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(update); }, { passive: true });
+      track.addEventListener('keydown', e => {
+        if (e.key === 'ArrowLeft') go(current - 1);
+        else if (e.key === 'ArrowRight') go(current + 1);
+        else if (e.key === 'Home') go(0);
+        else if (e.key === 'End') go(slides.length - 1);
+        else return;
+        e.preventDefault();
+      });
+      // On resize the slide width changes, so put the current slide back at the left edge.
+      galleryRefresh.push(() => { track.scrollTo({ left: current * step(), behavior: 'auto' }); update(); });
+      update();
+    });
+  }
+
   /* ---------- Views ---------- */
   function viewHome() {
     if (!POSTS.length) {
@@ -883,6 +1036,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 
   function viewPost(p) {
     const body = renderBody(p.body);
+    const gal = placeGallery(p, body);
     const isEd = p.authorName && p.authorName === SITE.editor_name;
     const role = isEd ? SITE.editor_role : '', bio = isEd ? SITE.editor_bio : '';
     const i = POSTS.indexOf(p);
@@ -904,7 +1058,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
       '<div class="wrap post-grid">' +
       '<aside class="toc" aria-label="In this piece">' + (body.heads.length ? '<p class="kicker">In this piece</p>' +
         body.heads.map(h => '<button type="button" data-jump="' + h.id + '">' + esc(h.text) + '</button>').join('') : '') + '</aside>' +
-      '<div><div class="prose" id="article">' + body.html + '</div>' +
+      '<div>' + gal.before + '<div class="prose" id="article">' + gal.content + '</div>' +
       sourcesHtml(p) +
       '<div class="share"><span class="kicker">Share</span><button type="button" class="btn btn-ghost btn-small" data-copylink>Copy link</button></div>' +
       (p.authorName ? '<div class="author-box"><span class="avatar" aria-hidden="true">' + esc(initials(p.authorName)) + '</span><div><div class="by-name">' + esc(p.authorName) + '</div>' +
@@ -1016,6 +1170,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
     const lamp = $('#lamp');
     if (lamp && HERO) bindLamp(lamp, HERO.slug);
     bindSlider();
+    bindGalleries();
     if (!initial) {
       const h = $('#main h1');
       if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
@@ -1046,7 +1201,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
     ticking = true;
     requestAnimationFrame(() => { ticking = false; updateProgress(); });
   }, { passive: true });
-  window.addEventListener('resize', () => { updateProgress(); if (sliderRefresh) sliderRefresh(); });
+  window.addEventListener('resize', () => { updateProgress(); if (sliderRefresh) sliderRefresh(); galleryRefresh.forEach(f => f()); });
 
   function legacyCopy(text) {
     const t = document.createElement('textarea');
@@ -1124,11 +1279,18 @@ input[aria-invalid="true"] { border-color: var(--danger); }
   });
 
   /* A cover image that fails to load falls back to the entry's generated dot field,
-     so a wrong path or a blocked host never leaves an empty box. Image errors do not
+     so a wrong path or a blocked host never leaves an empty box. A gallery picture that fails
+     shows a short note in its frame instead of a broken-image icon. Image errors do not
      bubble, so this listens in the capture phase. */
   document.addEventListener('error', e => {
     const img = e.target;
-    if (!img || img.tagName !== 'IMG' || !img.dataset.slug) return;
+    if (!img || img.tagName !== 'IMG') return;
+    if (img.hasAttribute('data-galimg')) {
+      const frame = img.parentElement;
+      if (frame) frame.innerHTML = '<span class="gal-miss">This image could not be loaded.</span>';
+      return;
+    }
+    if (!img.dataset.slug) return;
     const wrap = img.parentElement;
     if (wrap) wrap.innerHTML = coverSVG(img.dataset.slug);
   }, true);
