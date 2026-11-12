@@ -337,6 +337,25 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 .thanks p { margin: 0 !important; font-size: 1.0625rem !important; }
 .sub-page { max-width: 34rem; margin-top: 2rem; }
 
+/* Tags, sources and outside links */
+.tags { display: flex; flex-wrap: wrap; gap: .5rem; }
+.chip-tag { font-family: var(--font-mono); font-size: .75rem; padding: .25rem .7rem; }
+.chip-tag .n { margin-left: .4rem; color: var(--muted); }
+.chip-group { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.chip-group .kicker { margin-right: .25rem; }
+.sources { padding-block: 1.5rem 1.25rem; border-top: 1px solid var(--line); }
+.sources h2 { margin: 0 0 .75rem; font-weight: 500; }
+.sources ol { margin: 0; padding-left: 1.5em; font-family: var(--font-text); font-size: 1.0625rem; line-height: 1.5; color: var(--fg-soft); }
+.sources li { margin-bottom: .55em; padding-left: .25em; }
+.sources li::marker { color: var(--accent); font-family: var(--font-mono); font-size: .8em; }
+.sources a { color: var(--accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .18em; overflow-wrap: anywhere; }
+.sources a:hover { color: var(--accent-hi); }
+.sources .host { margin-left: .6rem; font: 400 .75rem var(--font-mono); color: var(--muted); white-space: nowrap; }
+.social { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .5rem; }
+.foot-grid.has-social { grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)); }
+@media (max-width: 900px) { .foot-grid.has-social { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .foot-grid.has-social { grid-template-columns: minmax(0, 1fr); } }
+
 /* Footer */
 .site-foot { border-top: 1px solid var(--line); padding-block: 3rem 2.5rem; }
 .foot-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 1fr)); gap: 2rem; }
@@ -405,7 +424,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 (function () {
   'use strict';
 
-  var SITE = {}, POSTS = [], TOPICS = [], READY = false;
+  var SITE = {}, POSTS = [], TOPICS = [], TAGS = [], HERO = null, READY = false;
   var sliderRefresh = null;
 
   const $ = (s, r) => (r || document).querySelector(s);
@@ -443,10 +462,13 @@ input[aria-invalid="true"] { border-color: var(--danger); }
       name: 'Low Light', tagline: '', editor_name: '', editor_role: '', editor_bio: '', email: '',
       about_title: 'About', about_intro: '', contact_text: '',
       newsletter_name: 'The newsletter', newsletter_heading: 'Get new articles by email.', newsletter_text: '', newsletter_username: '',
-      topics: [], principles: []
+      topics: [], principles: [], social: []
     }, site || {});
     if (!Array.isArray(SITE.topics)) SITE.topics = [];
     if (!Array.isArray(SITE.principles)) SITE.principles = [];
+    SITE.social = (Array.isArray(SITE.social) ? SITE.social : [])
+      .map(x => ({ label: String(x && x.label || '').trim(), url: String(x && x.url || '').trim() }))
+      .filter(x => x.label && /^(https?:\/\/|mailto:)/i.test(x.url));
 
     const used = {};
     POSTS = (Array.isArray(posts) ? posts : [])
@@ -464,13 +486,34 @@ input[aria-invalid="true"] { border-color: var(--danger); }
         o.body = String(p.body || '');
         o.coverImage = String(p.image || p.cover || '').trim(); // optional; the generated dot-field cover is used when empty
         o.coverAlt = String(p.image_alt || '').trim();
+        o.featured = p.featured === true || p.featured === 'true';
+        o.updatedObj = parseDate(p.updated);
+        const rawTags = Array.isArray(p.tags) ? p.tags : String(p.tags || '').split(',');
+        const tagSeen = {};
+        o.tags = rawTags.map(t => String(t || '').trim()).filter(Boolean)
+          .map(t => ({ name: t, id: slugify(t) }))
+          .filter(t => t.id && !tagSeen[t.id] && (tagSeen[t.id] = 1));
+        o.sources = (Array.isArray(p.sources) ? p.sources : []).map(x => {
+          const url = String(x && x.url || '').trim();
+          return { title: String(x && x.title || '').trim(), url: /^https?:\/\//i.test(url) ? url : '' };
+        }).filter(x => x.title);
         o.authorName = String(p.author || '').trim() || SITE.editor_name || '';
         const words = (o.deck + ' ' + o.body.replace(/```[\s\S]*?```/g, ' ')).split(/\s+/).filter(Boolean).length;
         o.mins = Math.max(1, Math.round(words / 230));
-        o.hay = (o.title + ' ' + o.deck + ' ' + o.authorName + ' ' + o.topicName + ' ' + o.body).toLowerCase();
+        o.hay = (o.title + ' ' + o.deck + ' ' + o.authorName + ' ' + o.topicName + ' ' + o.tags.map(t => t.name).join(' ') + ' ' + o.body).toLowerCase();
         return o;
       });
     POSTS.sort((a, b) => (b.dateObj ? b.dateObj.getTime() : 0) - (a.dateObj ? a.dateObj.getTime() : 0));
+
+    // The hero is the newest entry marked Featured, or simply the newest entry when none is marked.
+    HERO = POSTS.find(p => p.featured) || POSTS[0] || null;
+    const tagIndex = {};
+    TAGS = [];
+    POSTS.forEach(p => p.tags.forEach(t => {
+      if (!tagIndex[t.id]) { tagIndex[t.id] = { id: t.id, name: t.name, n: 0 }; TAGS.push(tagIndex[t.id]); }
+      tagIndex[t.id].n++;
+    }));
+    TAGS.sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
 
     const blurbs = {}, seen = {};
     TOPICS = [];
@@ -482,6 +525,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
     POSTS.forEach(p => add(p.topicId, p.topicName));
   }
   const topicOf = id => TOPICS.find(t => t.id === id);
+  const tagOf = id => TAGS.find(t => t.id === id);
 
   function inl(s) {
     let t = esc(s);
@@ -664,8 +708,29 @@ input[aria-invalid="true"] { border-color: var(--danger); }
     return '<div class="empty"><h3>' + esc(title) + '</h3><p>' + esc(text) + '</p></div>';
   }
 
+  /* Small helpers for the optional fields. Each returns an empty string when its field is empty,
+     so an entry without tags, sources or an update date renders exactly as before. */
+  function extAttrs(url) { return /^https?:/i.test(url) ? ' target="_blank" rel="noopener me"' : ' rel="me"'; }
+  function hostOf(url) { try { return new URL(url).hostname.replace(/^www\./, ''); } catch (e) { return ''; } }
+  function updatedHtml(p) {
+    return p.updatedObj && (!p.dateObj || p.updatedObj.getTime() > p.dateObj.getTime())
+      ? '<span>Updated ' + fmtDate(p.updatedObj) + '</span>' : '';
+  }
+  function tagsHtml(p) {
+    if (!p.tags.length) return '';
+    return '<div class="tags" role="group" aria-label="Tags">' +
+      p.tags.map(t => '<a class="chip chip-tag" href="#tag-' + t.id + '">' + esc(t.name) + '</a>').join('') + '</div>';
+  }
+  function sourcesHtml(p) {
+    if (!p.sources.length) return '';
+    return '<section class="sources" aria-labelledby="sourcesTitle"><h2 class="kicker" id="sourcesTitle">Sources</h2><ol>' +
+      p.sources.map(x => '<li>' + (x.url
+        ? '<a href="' + esc(x.url) + '" target="_blank" rel="noopener">' + esc(x.title) + '</a><span class="host">' + esc(hostOf(x.url)) + '</span>'
+        : esc(x.title)) + '</li>').join('') + '</ol></section>';
+  }
+
   /* ---------- Image slider ----------
-     Shows the entries after the featured one, so the hero and the slider never repeat each other.
+     Shows up to eight entries other than the hero, so the two never repeat each other.
      Covers come from renderPostVisual, so an entry with an image shows it and every other entry
      keeps its generated dot-field cover. No stock photos, no third-party image hosts. */
   function slideCard(p) {
@@ -677,8 +742,8 @@ input[aria-invalid="true"] { border-color: var(--danger); }
       '</a></li>';
   }
 
-  function imageSliderBand() {
-    const list = POSTS.slice(1, 9);
+  function imageSliderBand(list) {
+    list = (list || []).slice(0, 8);
     if (list.length < 2) return '';
     return '<section class="band band-line" aria-labelledby="sliderTitle"><div class="wrap">' +
       '<div class="section-head"><h2 class="h-section" id="sliderTitle">Browse the essays</h2>' +
@@ -751,8 +816,9 @@ input[aria-invalid="true"] { border-color: var(--danger); }
         (SITE.tagline ? '<p class="lede">' + esc(SITE.tagline) + '</p>' : '') +
         '<div style="margin-top:2rem">' + emptyState('No articles yet.', 'Published articles appear here. Add the first one from your dashboard and it shows up on the next page load.') + '</div></div></section>';
     }
-    const f = POSTS[0];
-    const latest = POSTS.slice(1, 5);
+    const f = HERO;
+    const others = POSTS.filter(p => p !== f);
+    const latest = others.slice(0, 4);
     return '<h1 class="sr-only">' + esc(SITE.name + (SITE.tagline ? ', ' + SITE.tagline : '')) + '</h1>' +
       '<section class="hero"><div class="wrap hero-grid">' +
       '<div class="hero-copy">' +
@@ -768,25 +834,25 @@ input[aria-invalid="true"] { border-color: var(--danger); }
         const n = POSTS.filter(p => p.topicId === t.id).length;
         return '<a class="topic" href="#journal-' + t.id + '"><span class="count">' + plural(n, 'entry', 'entries') + '</span><h3>' + esc(t.name) + '</h3>' + (t.blurb ? '<p>' + esc(t.blurb) + '</p>' : '') + '</a>';
       }).join('') + '</div></div></section>' +
-      imageSliderBand() +
+      imageSliderBand(others) +
       (latest.length ? '<section class="band band-line"><div class="wrap"><div class="section-head"><h2 class="h-section">Latest</h2>' +
         '<a class="more" href="#journal">All ' + POSTS.length + ' entries ' + ARROW + '</a></div>' +
         '<div class="grid-2">' + latest.map(card).join('') + '</div></div></section>' : '') +
       newsBand();
   }
 
-  const state = { topic: null, q: '', focusSearch: false };
+  const state = { topic: null, tag: null, q: '', focusSearch: false };
 
   function filtered() {
     const q = state.q.trim().toLowerCase();
-    return POSTS.filter(p => (!state.topic || p.topicId === state.topic) && (!q || p.hay.indexOf(q) !== -1));
+    return POSTS.filter(p => (!state.topic || p.topicId === state.topic) && (!state.tag || p.tags.some(t => t.id === state.tag)) && (!q || p.hay.indexOf(q) !== -1));
   }
   function resultsHtml() {
     const list = filtered();
     if (!list.length) {
-      if (!state.q.trim()) return emptyState('Nothing here yet.', 'No articles have been published in this topic.');
+      if (!state.q.trim()) return emptyState('Nothing here yet.', 'No articles have been published here yet.');
       return '<div class="empty"><h3>No entries match that search.</h3><p>Nothing in ' +
-        (state.topic && topicOf(state.topic) ? esc(topicOf(state.topic).name) : 'the journal') + ' mentions <strong>' + esc(state.q.trim()) +
+        (state.topic && topicOf(state.topic) ? esc(topicOf(state.topic).name) : state.tag && tagOf(state.tag) ? 'the “' + esc(tagOf(state.tag).name) + '” tag' : 'the journal') + ' mentions <strong>' + esc(state.q.trim()) +
         '</strong>. Try a shorter word, or clear the search to see everything.</p>' +
         '<button type="button" class="btn btn-ghost" data-clear>Clear search</button></div>';
     }
@@ -794,18 +860,23 @@ input[aria-invalid="true"] { border-color: var(--danger); }
   }
   function renderResults() { const el = $('#results'); if (el) el.innerHTML = resultsHtml(); }
 
-  function viewJournal(topicId) {
-    state.topic = topicId;
+  function viewJournal(topicId, tagId) {
+    state.topic = topicId || null;
+    state.tag = tagId || null;
     const t = topicId ? topicOf(topicId) : null;
+    const g = tagId ? tagOf(tagId) : null;
     return '<section class="page-head"><div class="wrap">' +
-      '<p class="kicker">' + (t ? 'Journal · ' + esc(t.name) : 'Journal') + '</p>' +
-      '<h1 class="h-page">' + (t ? esc(t.name) : 'Everything we’ve published') + '</h1>' +
-      '<p class="lede">' + (t ? esc(t.blurb || plural(POSTS.filter(p => p.topicId === t.id).length, 'entry', 'entries') + ' in this topic.') : plural(POSTS.length, 'entry', 'entries') + ' across ' + plural(TOPICS.length, 'topic', 'topics') + '.') + '</p>' +
+      '<p class="kicker">' + (t ? 'Journal · ' + esc(t.name) : g ? 'Journal · Tag' : 'Journal') + '</p>' +
+      '<h1 class="h-page">' + (t ? esc(t.name) : g ? 'Tagged “' + esc(g.name) + '”' : 'Everything we’ve published') + '</h1>' +
+      '<p class="lede">' + (t ? esc(t.blurb || plural(POSTS.filter(p => p.topicId === t.id).length, 'entry', 'entries') + ' in this topic.') : g ? plural(g.n, 'entry', 'entries') + ' tagged “' + esc(g.name) + '”.' : plural(POSTS.length, 'entry', 'entries') + ' across ' + plural(TOPICS.length, 'topic', 'topics') + '.') + '</p>' +
       '<div class="tools"><label class="search"><span class="sr-only">Search entries</span>' + SEARCH +
       '<input id="q" type="search" placeholder="Search titles and ideas" autocomplete="off"></label>' +
-      '<nav class="chips" aria-label="Filter by topic"><a class="chip" href="#journal"' + (!t ? ' aria-current="page"' : '') + '>All</a>' +
+      '<nav class="chips" aria-label="Filter by topic"><a class="chip" href="#journal"' + (!t && !g ? ' aria-current="page"' : '') + '>All</a>' +
       TOPICS.map(x => '<a class="chip" href="#journal-' + x.id + '"' + (t && t.id === x.id ? ' aria-current="page"' : '') + '>' + esc(x.name) + '</a>').join('') +
-      '</nav></div></div></section>' +
+      '</nav>' +
+      (TAGS.length ? '<nav class="chip-group" aria-label="Filter by tag"><span class="kicker">Tags</span>' +
+        TAGS.map(x => '<a class="chip chip-tag" href="#tag-' + x.id + '"' + (g && g.id === x.id ? ' aria-current="page"' : '') + '>' + esc(x.name) + '<span class="n">' + x.n + '</span></a>').join('') + '</nav>' : '') +
+      '</div></div></section>' +
       '<section class="wrap" style="padding-bottom:clamp(3rem,6vw,5rem)"><div id="results" aria-live="polite">' + resultsHtml() + '</div></section>' +
       newsBand();
   }
@@ -827,13 +898,14 @@ input[aria-invalid="true"] { border-color: var(--danger); }
       '<h1 class="post-title">' + esc(p.title) + '</h1>' +
       (p.deck ? '<p class="post-deck">' + esc(p.deck) + '</p>' : '') +
       '<div class="byline">' + who +
-      '<div class="meta">' + (p.dateObj ? '<span>' + fmtDate(p.dateObj) + '</span>' : '') + '<span>' + p.mins + ' min read</span></div></div>' +
+      '<div class="meta">' + (p.dateObj ? '<span>' + fmtDate(p.dateObj) + '</span>' : '') + '<span>' + p.mins + ' min read</span>' + updatedHtml(p) + '</div></div>' + tagsHtml(p) +
       '</div>' +
       '<div class="wrap"><div class="thumb post-cover">' + renderPostVisual(p) + '</div></div>' +
       '<div class="wrap post-grid">' +
       '<aside class="toc" aria-label="In this piece">' + (body.heads.length ? '<p class="kicker">In this piece</p>' +
         body.heads.map(h => '<button type="button" data-jump="' + h.id + '">' + esc(h.text) + '</button>').join('') : '') + '</aside>' +
       '<div><div class="prose" id="article">' + body.html + '</div>' +
+      sourcesHtml(p) +
       '<div class="share"><span class="kicker">Share</span><button type="button" class="btn btn-ghost btn-small" data-copylink>Copy link</button></div>' +
       (p.authorName ? '<div class="author-box"><span class="avatar" aria-hidden="true">' + esc(initials(p.authorName)) + '</span><div><div class="by-name">' + esc(p.authorName) + '</div>' +
         (role ? '<div class="meta"><span>' + esc(role) + '</span></div>' : '') + (bio ? '<p>' + esc(bio) + '</p>' : '') + '</div></div>' : '') +
@@ -860,6 +932,8 @@ input[aria-invalid="true"] { border-color: var(--danger); }
       (mail ? '<section class="band band-line"><div class="wrap two-col"><h2 class="h-section">Get in touch</h2><div class="body">' +
         (SITE.contact_text ? '<p>' + esc(SITE.contact_text) + '</p>' : '') +
         '<div class="mail"><code>' + esc(mail) + '</code><button type="button" class="btn btn-ghost btn-small" data-copytext="' + esc(mail) + '">Copy address</button></div></div></div></section>' : '') +
+      (SITE.social.length ? '<section class="band band-line"><div class="wrap two-col"><h2 class="h-section">Elsewhere</h2><div class="body"><ul class="social">' +
+        SITE.social.map(x => '<li><a class="chip" href="' + esc(x.url) + '"' + extAttrs(x.url) + '>' + esc(x.label) + '</a></li>').join('') + '</ul></div></div></section>' : '') +
       '<section class="band band-line"><div class="wrap two-col"><h2 class="h-section">Colophon</h2><div class="body">' +
       '<p>Set in Bricolage Grotesque for headings, Newsreader for reading and JetBrains Mono for details. The cover art on every entry is generated from the entry’s title, so no two are alike.</p></div></div></section>';
   }
@@ -897,11 +971,12 @@ input[aria-invalid="true"] { border-color: var(--danger); }
     $('#brandName').textContent = SITE.name;
     $('#subscribeLink').hidden = !newsUser();
     $('#brandLink').setAttribute('aria-label', SITE.name + ', home');
-    $('#foot').innerHTML = '<div class="wrap"><div class="foot-grid">' +
+    $('#foot').innerHTML = '<div class="wrap"><div class="foot-grid' + (SITE.social.length ? ' has-social' : '') + '">' +
       '<div><a class="brand" href="#home">' + esc(SITE.name) + '</a>' + (SITE.tagline ? '<p>' + esc(SITE.tagline) + (SITE.editor_name ? ' Edited by ' + esc(SITE.editor_name) + '.' : '') + '</p>' : '') + '</div>' +
       '<div><h2>Read</h2><ul><li><a href="#journal">All entries</a></li>' +
       TOPICS.map(t => '<li><a href="#journal-' + t.id + '">' + esc(t.name) + '</a></li>').join('') + '</ul></div>' +
       '<div><h2>Site</h2><ul><li><a href="#about">About</a></li>' + (newsUser() ? '<li><a href="#subscribe">Subscribe</a></li>' : '') + '</ul></div>' +
+      (SITE.social.length ? '<div><h2>Follow</h2><ul>' + SITE.social.map(x => '<li><a href="' + esc(x.url) + '"' + extAttrs(x.url) + '>' + esc(x.label) + '</a></li>').join('') + '</ul></div>' : '') +
       '</div><div class="legal"><span>© ' + new Date().getFullYear() + ' ' + esc(SITE.editor_name || SITE.name) + '</span>' +
       (SITE.email ? '<span>' + esc(SITE.email) + '</span>' : '') + '</div></div>';
   }
@@ -914,6 +989,10 @@ input[aria-invalid="true"] { border-color: var(--danger); }
     if (key.indexOf('journal-') === 0) {
       const t = topicOf(key.slice(8));
       if (t) return { nav: 'journal', title: t.name + ' · ' + name, html: viewJournal(t.id) };
+    }
+    if (key.indexOf('tag-') === 0) {
+      const g = tagOf(key.slice(4));
+      if (g) return { nav: 'journal', title: g.name + ' · Journal · ' + name, html: viewJournal(null, g.id) };
     }
     if (key === 'about') return { nav: 'about', title: 'About · ' + name, html: viewAbout() };
     if (key === 'subscribe' && newsUser()) return { nav: 'subscribe', title: 'Subscribe · ' + name, html: viewSubscribe() };
@@ -935,7 +1014,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
     $('#progress').hidden = !r.post;
     if (!initial) window.scrollTo(0, 0);
     const lamp = $('#lamp');
-    if (lamp) bindLamp(lamp, POSTS[0].slug);
+    if (lamp && HERO) bindLamp(lamp, HERO.slug);
     bindSlider();
     if (!initial) {
       const h = $('#main h1');

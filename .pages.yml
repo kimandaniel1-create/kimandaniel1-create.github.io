@@ -21,11 +21,27 @@ content:
         label: Topic
         type: string
         description: Spell it the same way every time, for example Photography. Articles with the same topic are grouped together.
+      - name: tags
+        label: Tags
+        type: string
+        list: true
+        description: Optional. Short lowercase words such as typography or performance. Spell each one the same way every time. Every tag gets its own page and is included in search.
       - name: date
         label: Date
         type: date
         options:
           format: yyyy-MM-dd
+      - name: updated
+        label: Last updated
+        type: date
+        options:
+          format: yyyy-MM-dd
+        description: Optional. Set it when you revise an article. The page then shows "Updated" with this date. It is ignored if it is not later than the publish date.
+      - name: featured
+        label: Featured
+        type: boolean
+        default: false
+        description: Turn on to show this article at the top of the front page. If several are on, the newest one is used. If none are on, the newest article is shown.
       - name: image
         label: Cover image
         type: image
@@ -42,6 +58,20 @@ content:
           heading, > for a pull quote, or - for a bullet. To add a photo,
           upload it in the Media section, then write ![What it shows](/media/photo.jpg)
           on its own line.
+      - name: sources
+        label: Sources
+        type: object
+        list: true
+        description: Optional. References shown in a numbered list at the end of the article. Add a link when there is one, and leave it empty for a book or report.
+        fields:
+          - name: title
+            label: Title
+            type: string
+            description: For example "WCAG 2.2, Understanding SC 1.4.3 Contrast (Minimum)".
+          - name: url
+            label: Link
+            type: string
+            description: Optional. A full address starting with https://
       - name: draft
         label: Draft
         type: boolean
@@ -80,6 +110,20 @@ content:
       - name: email
         label: Contact email
         type: string
+      - name: social
+        label: Social links
+        type: object
+        list: true
+        description: Optional. Shown in the footer and on the About page. Leave the list empty to hide them.
+        fields:
+          - name: label
+            label: Name
+            type: string
+            description: For example GitHub or LinkedIn.
+          - name: url
+            label: Link
+            type: string
+            description: A full address starting with https://
       - name: about_title
         label: About page headline
         type: string
