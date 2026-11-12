@@ -140,6 +140,12 @@
       {
         "image": "/media/80.jpg",
         "alt": "A portrait of an Old man"
+      },
+      {
+        "image": "/media/dd.jpg"
+      },
+      {
+        "image": "/media/df.jpg"
       }
     ],
     "gallery_layout": "slider",
