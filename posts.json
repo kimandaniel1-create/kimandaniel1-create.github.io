@@ -175,7 +175,7 @@
     "gallery_layout": "slider",
     "gallery_ratio": "16-10",
     "gallery_fit": "cover",
-    "gallery_position": "end",
+    "gallery_position": "after-intro",
     "draft": false
   },
   {
