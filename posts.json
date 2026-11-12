@@ -146,6 +146,22 @@
       },
       {
         "image": "/media/df.jpg"
+      },
+      {
+        "image": "/media/22.jpg",
+        "alt": "Mountains covered with fog"
+      },
+      {
+        "image": "/media/11x.jpg",
+        "alt": "An abandoned supermarket "
+      },
+      {
+        "image": "/media/13.jpg",
+        "alt": "Abandoned building "
+      },
+      {
+        "image": "/media/14x.jpg",
+        "alt": "Abandoned building "
       }
     ],
     "gallery_layout": "slider",
