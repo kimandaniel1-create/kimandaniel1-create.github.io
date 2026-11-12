@@ -124,6 +124,14 @@
       },
       {
         "image": "/media/thumb_206356_default_big.png"
+      },
+      {
+        "image": "/media/003.jpg",
+        "alt": "Light and Shadows"
+      },
+      {
+        "image": "/media/O04.jpg",
+        "alt": "Ray of light forming a pattern of light and shadows "
       }
     ],
     "gallery_layout": "slider",
