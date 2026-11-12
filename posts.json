@@ -56,6 +56,7 @@
     "date": "2026-09-30",
     "updated": "2026-11-12",
     "featured": false,
+    "image": "/media/1794463359624.jpg",
     "body": "Most of the work I am proud of this year is work I deleted. A settings page lost half its toggles. A dashboard lost two charts nobody could explain. A form lost a field that existed because one customer asked for it in 2019.\n\n## Every option is a promise\n\nEach feature you ship comes with a promise to keep it working, to document it and to test it against every feature that arrives later. The cost of that promise grows quietly, and it is paid by whoever touches the code next.\n\n## How to decide\n\nBefore cutting something, I ask three questions. Who used it in the last ninety days? What do they do instead when it is gone? What would we build if we started today? If the third answer looks nothing like the current feature, the feature is a candidate.\n\n> Deleting code is the one refactor that almost always makes the next change cheaper.\n\nAfter the cut, write a short note saying what changed and why. People forgive a removal they understand much faster than one they discover on their own.",
     "draft": false
   },
