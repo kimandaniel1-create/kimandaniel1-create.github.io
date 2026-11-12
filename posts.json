@@ -110,6 +110,10 @@
       {
         "image": "/media/9x.jpg",
         "alt": "Abandoned houses"
+      },
+      {
+        "image": "/media/68.png",
+        "alt": "Hustles in a marketplace "
       }
     ],
     "gallery_layout": "slider",
