@@ -341,13 +341,6 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 .thanks h3 { margin: 0 0 .4rem; font-size: 1.375rem; letter-spacing: -.02em; }
 .thanks p { margin: 0 !important; font-size: 1.0625rem !important; }
 .sub-page { max-width: 34rem; margin-top: 2rem; }
-/* Buttondown's own sign-up box, shown on the page. It handles the CAPTCHA check and the
-   confirmation message itself, so the visitor never leaves the site. Change the height here
-   if the box looks cut off or has too much empty space. */
-.embed-sub { border: 1px solid var(--line-strong); border-radius: 12px; background: var(--bg-raise); overflow: hidden; }
-.embed-frame { display: block; width: 100%; height: 240px; border: 0; background: transparent; }
-.news-grid .form-msg { max-width: none; }
-@media (max-width: 480px) { .embed-frame { height: 290px; } }
 
 /* Tags, sources and outside links */
 .tags { display: flex; flex-wrap: wrap; gap: .5rem; }
@@ -755,13 +748,13 @@ input[aria-invalid="true"] { border-color: var(--danger); }
   function newsUser() {
     return String(SITE.newsletter_username || '').trim().replace(/^.*buttondown\.(?:com|email)\//i, '').replace(/[^\w-]/g, '');
   }
-  /* Sign-up runs inside Buttondown's embed, so it stays on this page. Buttondown asks that
-     the embed form is not submitted with fetch, because some sign-ups need a CAPTCHA step. */
   function subscribeForm(id) {
-    return '<div class="embed-sub"><iframe id="' + id + '" class="embed-frame" loading="lazy" ' +
-      'src="https://buttondown.com/' + newsUser() + '?as_embed=true" ' +
-      'title="Subscribe to ' + esc(SITE.newsletter_name) + ' by email"></iframe></div>' +
-      '<p class="form-msg">After you join, Buttondown emails you a confirmation link. Tap it to finish subscribing. Nothing arrived? Check your spam folder.</p>';
+    return '<form class="sub" data-subscribe method="post" target="_blank" action="https://buttondown.com/api/emails/embed-subscribe/' + newsUser() + '" novalidate>' +
+      '<div class="field"><label class="sr-only" for="' + id + '">Email address</label>' +
+      '<input id="' + id + '" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required>' +
+      '<input type="hidden" name="embed" value="1">' +
+      '<button class="btn" type="submit">Join the list</button></div>' +
+      '<p class="form-msg" role="status" aria-live="polite"></p></form>';
   }
   function newsBand() {
     if (!newsUser()) return '';
@@ -1269,6 +1262,25 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 
   document.addEventListener('input', e => {
     if (e.target.id === 'q') { state.q = e.target.value; renderResults(); }
+  });
+
+  document.addEventListener('submit', e => {
+    const form = e.target.closest('form[data-subscribe]');
+    if (!form) return;
+    const input = $('input[type="email"]', form);
+    const msg = $('.form-msg', form);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value.trim())) {
+      e.preventDefault();
+      input.setAttribute('aria-invalid', 'true');
+      msg.className = 'form-msg err';
+      msg.textContent = 'Enter a valid email address.';
+      input.focus();
+      return;
+    }
+    input.removeAttribute('aria-invalid');
+    msg.className = 'form-msg';
+    msg.textContent = 'Almost there. Finish signing up in the new tab.';
+    setTimeout(() => { input.value = ''; }, 400);
   });
 
   /* A cover image that fails to load falls back to the entry's generated dot field,
