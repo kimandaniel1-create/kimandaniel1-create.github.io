@@ -218,6 +218,10 @@ content:
       - name: newsletter_text
         label: Newsletter description
         type: text
+      - name: newsletter_username
+        label: Buttondown username
+        type: string
+        description: Your username from buttondown.com. Leave empty to hide the sign-up form and the Subscribe link.
       - name: topics
         label: Topic descriptions
         type: object
