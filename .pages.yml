@@ -218,10 +218,10 @@ content:
       - name: newsletter_text
         label: Newsletter description
         type: text
-      - name: newsletter_username
-        label: Buttondown username
+      - name: newsletter_embed
+        label: Kit form embed address
         type: string
-        description: Your username from buttondown.com. Leave empty to hide the sign-up form and the Subscribe link.
+        description: The address from Kit's JavaScript embed code, the part after src= that ends in /index.js. Leave empty to hide the sign-up form and the Subscribe link.
       - name: topics
         label: Topic descriptions
         type: object
