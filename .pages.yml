@@ -218,10 +218,22 @@ content:
       - name: newsletter_text
         label: Newsletter description
         type: text
-      - name: newsletter_embed
-        label: Kit form embed address
+      - name: newsletter_form
+        label: Kit form address
+        type: text
+        description: >-
+          From Kit, open your form, click Embed, choose HTML and copy it. Paste the
+          whole thing here, or only the address after action=, which looks like
+          https://app.kit.com/forms/1234567/subscriptions. Leave empty to hide
+          the sign-up form and the Subscribe link.
+      - name: newsletter_thanks_title
+        label: Thank-you headline
         type: string
-        description: The address from Kit's JavaScript embed code, the part after src= that ends in /index.js. Leave empty to hide the sign-up form and the Subscribe link.
+        description: Optional. Shown in place of the form after someone joins. Leave empty to use "Thank you for subscribing."
+      - name: newsletter_thanks_text
+        label: Thank-you message
+        type: text
+        description: Optional. Shown under the headline right after someone joins. Leave empty to use the default, which asks them to check their inbox for the confirmation email.
       - name: topics
         label: Topic descriptions
         type: object

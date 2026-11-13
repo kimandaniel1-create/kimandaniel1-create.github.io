@@ -340,29 +340,10 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 .thanks { border: 1px solid var(--line-strong); border-radius: 10px; padding: 1.25rem 1.5rem; background: var(--bg-raise); }
 .thanks h3 { margin: 0 0 .4rem; font-size: 1.375rem; letter-spacing: -.02em; }
 .thanks p { margin: 0 !important; font-size: 1.0625rem !important; }
+.thanks .btn { margin-top: 1rem; }
+.thanks:focus { outline: none; }
+.btn:disabled { opacity: .6; cursor: default; }
 .sub-page { max-width: 34rem; margin-top: 2rem; }
-/* Kit sign-up form. Kit draws its own form into .kit-embed, and these rules restyle it to match
-   the site. The long selectors and !important are there to win over the styles Kit ships with
-   the form. */
-.kit-embed { min-height: 4.5rem; }
-.kit-embed .kit-load { margin: 0; font-family: var(--font-display); font-size: .875rem; color: var(--muted); }
-.kit-embed .kit-load.err { color: var(--danger); }
-.kit-embed .formkit-form[data-uid] { max-width: none !important; margin: 0 !important; padding: 0 !important; background: transparent !important; border: 0 !important; box-shadow: none !important; font-family: var(--font-display) !important; color: var(--fg) !important; }
-.kit-embed .formkit-form[data-uid] [data-style] { padding: 0 !important; background: transparent !important; }
-.kit-embed .formkit-form[data-uid] .formkit-fields { display: flex !important; flex-wrap: wrap !important; gap: .5rem !important; margin: 0 !important; }
-.kit-embed .formkit-form[data-uid] .formkit-field { flex: 1 1 13rem !important; min-width: 0 !important; margin: 0 !important; }
-.kit-embed .formkit-form[data-uid] .formkit-input { box-sizing: border-box !important; width: 100% !important; height: auto !important; padding: .75rem 1rem !important; background: var(--bg-raise) !important; color: var(--fg) !important; border: 1px solid var(--line-strong) !important; border-radius: 10px !important; font: inherit !important; font-size: 1rem !important; }
-.kit-embed .formkit-form[data-uid] .formkit-input::placeholder { color: var(--muted) !important; }
-.kit-embed .formkit-form[data-uid] .formkit-input:focus { border-color: var(--accent) !important; outline: 2px solid var(--accent) !important; outline-offset: 2px !important; }
-.kit-embed .formkit-form[data-uid] .formkit-submit { flex: 0 0 auto !important; width: auto !important; margin: 0 !important; padding: 0 !important; background: var(--accent) !important; color: var(--accent-ink) !important; border: 1px solid var(--accent) !important; border-radius: 10px !important; font-family: var(--font-display) !important; font-size: .9375rem !important; font-weight: 600 !important; cursor: pointer; }
-.kit-embed .formkit-form[data-uid] .formkit-submit:hover { background: var(--accent-hi) !important; border-color: var(--accent-hi) !important; }
-.kit-embed .formkit-form[data-uid] .formkit-submit > span,
-.kit-embed .formkit-form[data-uid] .formkit-submit:hover > span,
-.kit-embed .formkit-form[data-uid] .formkit-submit:focus > span { display: block !important; padding: .72rem 1.15rem !important; background: transparent !important; }
-.kit-embed .formkit-form[data-uid] .formkit-alert { margin: .6rem 0 0 !important; padding: 0 !important; list-style: none !important; background: transparent !important; border: 0 !important; color: var(--danger) !important; font-size: .875rem !important; text-align: left !important; }
-.kit-embed .formkit-form[data-uid] .formkit-alert:empty { display: none !important; }
-.kit-embed .formkit-form[data-uid] .formkit-alert-success { margin: 0 !important; padding: 1.25rem 1.5rem !important; background: var(--bg-raise) !important; border: 1px solid var(--line-strong) !important; border-radius: 10px !important; color: var(--fg) !important; font-family: var(--font-text) !important; font-size: 1.0625rem !important; line-height: 1.5 !important; }
-.kit-embed .formkit-form[data-uid] .formkit-powered-by-convertkit-container { margin: .75rem 0 0 !important; }
 
 /* Tags, sources and outside links */
 .tags { display: flex; flex-wrap: wrap; gap: .5rem; }
@@ -527,7 +508,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
     SITE = Object.assign({
       name: 'Low Light', tagline: '', editor_name: '', editor_role: '', editor_bio: '', email: '',
       about_title: 'About', about_intro: '', contact_text: '',
-      newsletter_name: 'The newsletter', newsletter_heading: 'Get new articles by email.', newsletter_text: '', newsletter_embed: '',
+      newsletter_name: 'The newsletter', newsletter_heading: 'Get new articles by email.', newsletter_text: '', newsletter_form: '', newsletter_thanks_title: '', newsletter_thanks_text: '',
       topics: [], principles: [], social: []
     }, site || {});
     if (!Array.isArray(SITE.topics)) SITE.topics = [];
@@ -767,46 +748,41 @@ input[aria-invalid="true"] { border-color: var(--danger); }
     return '<a class="row" href="#post-' + p.slug + '"><div class="thumb">' + renderPostVisual(p) + '</div>' +
       '<div class="row-body">' + metaLine(p, true) + '<h3>' + esc(p.title) + '</h3>' + (p.deck ? '<p>' + esc(p.deck) + '</p>' : '') + '</div></a>';
   }
-  /* Newsletter sign-up runs on Kit. Site settings hold the address of Kit's JavaScript embed
-     (the src of the snippet, ending in /index.js). Leave it empty to hide the sign-up. */
-  function newsEmbed() {
-    const m = String(SITE.newsletter_embed || '').match(/https:\/\/[\w.-]+\.(?:kit\.com|ck\.page)\/([\w-]+)\/index\.js/i);
-    return m ? { src: m[0], uid: m[1] } : null;
+  /* Newsletter sign-up. The form on this page sends the address to Kit in the background and then
+     swaps itself for a thank-you message. Site settings hold the address of the Kit form, taken
+     from Kit's HTML embed (https://app.kit.com/forms/NUMBER/subscriptions). The settings field
+     also accepts the whole pasted HTML, or just the form number. Empty hides the sign-up. */
+  function newsEndpoint() {
+    const raw = String(SITE.newsletter_form || '').trim();
+    const m = raw.match(/https:\/\/[\w.-]+\.(?:kit|convertkit)\.com\/forms\/\d+\/subscriptions/i);
+    if (m) return m[0];
+    return /^\d{3,}$/.test(raw) ? 'https://app.kit.com/forms/' + raw + '/subscriptions' : '';
+  }
+  /* This browser remembers that its visitor has joined, so later visits show the thank-you
+     instead of the form. Only a yes/no flag is kept, never the address. */
+  const SUB_KEY = 'low-light-subscribed';
+  function isSubscribed() { try { return localStorage.getItem(SUB_KEY) === '1'; } catch (e) { return false; } }
+  function rememberSubscribed(on) { try { if (on) localStorage.setItem(SUB_KEY, '1'); else localStorage.removeItem(SUB_KEY); } catch (e) {} }
+  function thanksHtml(justJoined) {
+    const title = SITE.newsletter_thanks_title || 'Thank you for subscribing.';
+    const text = justJoined
+      ? (SITE.newsletter_thanks_text || 'Check your inbox for a confirmation email and tap the link inside to finish joining. Not there after a few minutes? Look in your spam folder.')
+      : 'You are on the list for ' + SITE.newsletter_name + '. If you have not confirmed yet, check your inbox for the confirmation email.';
+    return '<div class="thanks" role="status" tabindex="-1"><h3>' + esc(title) + '</h3><p>' + esc(text) + '</p>' +
+      '<button class="btn btn-ghost btn-small" type="button" data-sub-reset>Use a different email</button></div>';
+  }
+  function joinForm(id) {
+    return '<form class="sub" data-subscribe novalidate>' +
+      '<div class="field"><label class="sr-only" for="' + id + '">Email address</label>' +
+      '<input id="' + id + '" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required>' +
+      '<button class="btn" type="submit">Join the list</button></div>' +
+      '<p class="form-msg" role="status" aria-live="polite"></p></form>';
   }
   function subscribeForm(id) {
-    return '<div class="kit-embed" id="' + id + '" data-kit-embed><p class="kit-load" role="status">Loading the sign-up form…</p></div>';
-  }
-  /* Kit's script draws the form next to its own script tag. Scripts written with innerHTML never
-     run, so the tag is created here each time a page is shown. */
-  function mountKit() {
-    const cfg = newsEmbed();
-    if (!cfg) return;
-    $$('[data-kit-embed]').forEach(box => {
-      if (box.dataset.ready) return;
-      box.dataset.ready = '1';
-      const note = $('.kit-load', box);
-      const fail = () => {
-        if (note && note.isConnected) {
-          note.classList.add('err');
-          note.textContent = 'The sign-up form could not load. Check your connection, or turn off your ad blocker, then reload the page.';
-        }
-      };
-      const s = document.createElement('script');
-      s.async = true;
-      s.dataset.uid = cfg.uid;
-      s.src = cfg.src;
-      s.onerror = fail;
-      box.appendChild(s);
-      let timer;
-      const obs = new MutationObserver(() => {
-        if (box.querySelector('form')) { if (note) note.remove(); obs.disconnect(); clearTimeout(timer); }
-      });
-      obs.observe(box, { childList: true, subtree: true });
-      timer = setTimeout(() => { obs.disconnect(); if (!box.querySelector('form')) fail(); }, 12000);
-    });
+    return '<div class="sub-slot" data-id="' + id + '">' + (isSubscribed() ? thanksHtml(false) : joinForm(id)) + '</div>';
   }
   function newsBand() {
-    if (!newsEmbed()) return '';
+    if (!newsEndpoint()) return '';
     return '<section class="band band-news"><div class="wrap news-grid"><div>' +
       '<p class="kicker"><b>' + esc(SITE.newsletter_name) + '</b></p>' +
       '<h2 class="h-section" style="margin-top:.6rem">' + esc(SITE.newsletter_heading) + '</h2>' +
@@ -1177,13 +1153,13 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 
   function chrome() {
     $('#brandName').textContent = SITE.name;
-    $('#subscribeLink').hidden = !newsEmbed();
+    $('#subscribeLink').hidden = !newsEndpoint();
     $('#brandLink').setAttribute('aria-label', SITE.name + ', home');
     $('#foot').innerHTML = '<div class="wrap"><div class="foot-grid' + (SITE.social.length ? ' has-social' : '') + '">' +
       '<div><a class="brand" href="#home">' + esc(SITE.name) + '</a>' + (SITE.tagline ? '<p>' + esc(SITE.tagline) + (SITE.editor_name ? ' Edited by ' + esc(SITE.editor_name) + '.' : '') + '</p>' : '') + '</div>' +
       '<div><h2>Read</h2><ul><li><a href="#journal">All entries</a></li>' +
       TOPICS.map(t => '<li><a href="#journal-' + t.id + '">' + esc(t.name) + '</a></li>').join('') + '</ul></div>' +
-      '<div><h2>Site</h2><ul><li><a href="#about">About</a></li>' + (newsEmbed() ? '<li><a href="#subscribe">Subscribe</a></li>' : '') + '</ul></div>' +
+      '<div><h2>Site</h2><ul><li><a href="#about">About</a></li>' + (newsEndpoint() ? '<li><a href="#subscribe">Subscribe</a></li>' : '') + '</ul></div>' +
       (SITE.social.length ? '<div><h2>Follow</h2><ul>' + SITE.social.map(x => '<li><a href="' + esc(x.url) + '"' + extAttrs(x.url) + '>' + esc(x.label) + '</a></li>').join('') + '</ul></div>' : '') +
       '</div><div class="legal"><span>© ' + new Date().getFullYear() + ' ' + esc(SITE.editor_name || SITE.name) + '</span>' +
       (SITE.email ? '<span>' + esc(SITE.email) + '</span>' : '') + '</div></div>';
@@ -1203,7 +1179,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
       if (g) return { nav: 'journal', title: g.name + ' · Journal · ' + name, html: viewJournal(null, g.id) };
     }
     if (key === 'about') return { nav: 'about', title: 'About · ' + name, html: viewAbout() };
-    if (key === 'subscribe' && newsEmbed()) return { nav: 'subscribe', title: 'Subscribe · ' + name, html: viewSubscribe() };
+    if (key === 'subscribe' && newsEndpoint()) return { nav: 'subscribe', title: 'Subscribe · ' + name, html: viewSubscribe() };
     if (key.indexOf('post-') === 0) {
       const p = POSTS.find(x => x.slug === key.slice(5));
       if (p) return { nav: 'journal', title: p.title + ' · ' + name, html: viewPost(p), post: true };
@@ -1225,7 +1201,6 @@ input[aria-invalid="true"] { border-color: var(--danger); }
     if (lamp && HERO) bindLamp(lamp, HERO.slug);
     bindSlider();
     bindGalleries();
-    mountKit();
     if (!initial) {
       const h = $('#main h1');
       if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
@@ -1312,6 +1287,62 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 
   document.addEventListener('input', e => {
     if (e.target.id === 'q') { state.q = e.target.value; renderResults(); }
+  });
+
+  /* Sign-up. The request goes to Kit with mode "no-cors": Kit's form address accepts a plain form
+     post from any site, but browsers hide its reply, so the page can only tell that the request
+     was delivered, not what Kit decided. A network failure is reported; a rejection by Kit is not. */
+  document.addEventListener('submit', async e => {
+    const form = e.target.closest('form[data-subscribe]');
+    if (!form) return;
+    e.preventDefault();
+    if (form.dataset.busy) return;
+    const input = $('input[type="email"]', form);
+    const msg = $('.form-msg', form);
+    const btn = $('button[type="submit"]', form);
+    const problem = text => {
+      input.setAttribute('aria-invalid', 'true');
+      msg.className = 'form-msg err';
+      msg.textContent = text;
+      input.focus();
+    };
+    const email = input.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return problem('Enter a valid email address.');
+    const endpoint = newsEndpoint();
+    if (!endpoint) return problem('Sign-up is not available right now. Please try again later.');
+    input.removeAttribute('aria-invalid');
+    msg.className = 'form-msg';
+    msg.textContent = '';
+    form.dataset.busy = '1';
+    const label = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Joining…';
+    try {
+      await fetch(endpoint, { method: 'POST', mode: 'no-cors', body: new URLSearchParams({ email_address: email }) });
+    } catch (err) {
+      delete form.dataset.busy;
+      btn.disabled = false;
+      btn.textContent = label;
+      problem('We could not reach the sign-up service. Check your connection and try again.');
+      return;
+    }
+    rememberSubscribed(true);
+    const slot = form.closest('.sub-slot');
+    if (!slot) return;
+    slot.innerHTML = thanksHtml(true);
+    const t = $('.thanks', slot);
+    if (t) t.focus({ preventScroll: true });
+  });
+
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-sub-reset]');
+    if (!b) return;
+    rememberSubscribed(false);
+    const slot = b.closest('.sub-slot');
+    if (!slot) return;
+    slot.innerHTML = joinForm(slot.dataset.id);
+    const i = $('input[type="email"]', slot);
+    if (i) i.focus();
   });
 
   /* A cover image that fails to load falls back to the entry's generated dot field,
