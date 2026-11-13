@@ -5,11 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="A dark, sleek journal about making things for the web, edited by Adeniyi Daniel.">
 <meta name="theme-color" content="#0b0c10">
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<meta property="og:title" content="Low Light">
-<meta property="og:description" content="A journal about making things for the web.">
-<meta property="og:type" content="website">
-<meta name="twitter:card" content="summary">
 <title>Low Light</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..600&display=swap">
 <style>
@@ -426,6 +421,15 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 @media (max-width: 560px) { .gal-grid { grid-template-columns: minmax(0, 1fr); } }
 .gal-stack { display: flex; flex-direction: column; gap: 1.5rem; }
 </style>
+
+<!-- MailerLite Universal -->
+<script>
+  (function(w,d,e,u,f,l,n){w[f]=w[f]||function(){(w[f].q=w[f].q||[]).push(arguments);},l=d.createElement(e),l.async=1,l.src=u,n=d.getElementsByTagName(e)[0],n.parentNode.insertBefore(l,n);})
+  (window,document,'script','https://assets.mailerlite.com/js/universal.js','ml');
+  ml('account', '2791872');
+</script>
+<!-- End MailerLite Universal -->
+
 </head>
 <body>
 
@@ -746,15 +750,11 @@ input[aria-invalid="true"] { border-color: var(--danger); }
       '<div class="row-body">' + metaLine(p, true) + '<h3>' + esc(p.title) + '</h3>' + (p.deck ? '<p>' + esc(p.deck) + '</p>' : '') + '</div></a>';
   }
   function newsUser() {
-    return String(SITE.newsletter_username || '').trim().replace(/^.*buttondown\.(?:com|email)\//i, '').replace(/[^\w-]/g, '');
+    // MailerLite form ID. Kept as a truthy value for the existing navigation logic.
+    return 'FnNzOJ';
   }
   function subscribeForm(id) {
-    return '<form class="sub" data-subscribe method="post" target="_blank" action="https://buttondown.com/api/emails/embed-subscribe/' + newsUser() + '" novalidate>' +
-      '<div class="field"><label class="sr-only" for="' + id + '">Email address</label>' +
-      '<input id="' + id + '" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required>' +
-      '<input type="hidden" name="embed" value="1">' +
-      '<button class="btn" type="submit">Join the list</button></div>' +
-      '<p class="form-msg" role="status" aria-live="polite"></p></form>';
+    return '<div class="ml-embedded" data-form="' + newsUser() + '"></div>';
   }
   function newsBand() {
     if (!newsUser()) return '';
@@ -1262,25 +1262,6 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 
   document.addEventListener('input', e => {
     if (e.target.id === 'q') { state.q = e.target.value; renderResults(); }
-  });
-
-  document.addEventListener('submit', e => {
-    const form = e.target.closest('form[data-subscribe]');
-    if (!form) return;
-    const input = $('input[type="email"]', form);
-    const msg = $('.form-msg', form);
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value.trim())) {
-      e.preventDefault();
-      input.setAttribute('aria-invalid', 'true');
-      msg.className = 'form-msg err';
-      msg.textContent = 'Enter a valid email address.';
-      input.focus();
-      return;
-    }
-    input.removeAttribute('aria-invalid');
-    msg.className = 'form-msg';
-    msg.textContent = 'Almost there. Finish signing up in the new tab.';
-    setTimeout(() => { input.value = ''; }, 400);
   });
 
   /* A cover image that fails to load falls back to the entry's generated dot field,
