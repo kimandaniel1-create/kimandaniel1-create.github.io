@@ -13,14 +13,16 @@ content:
         label: Title
         type: string
         required: true
+        description: Put *stars* around words to show them in italics, or **two stars** for bold. For example, The *light* in a dark room.
       - name: deck
         label: Summary
         type: text
-        description: One or two sentences shown under the title and on article cards.
+        description: One or two sentences shown under the title and on article cards. The same marks work here as in the title, for example *italic*, **bold** and ==highlight==.
       - name: topic
         label: Topic
         type: string
-        description: Spell it the same way every time, for example Photography. Articles with the same topic are grouped together.
+        required: true
+        description: Spell it the same way every time, for example Photography. Articles with the same topic are grouped together. To show a topic in italics, write it once with stars under Site settings, in Topic descriptions. That version is then used everywhere.
       - name: tags
         label: Tags
         type: string
@@ -29,6 +31,7 @@ content:
       - name: date
         label: Date
         type: date
+        required: true
         options:
           format: yyyy-MM-dd
       - name: updated
@@ -53,12 +56,15 @@ content:
       - name: body
         label: Article
         type: text
-        description: >-
-          Leave a blank line between paragraphs. Start a line with ## for a
-          heading, > for a pull quote, or - for a bullet. To add a single photo
-          inside the text, upload it in the Media section, then write
-          ![What it shows](/media/photo.jpg) on its own line. For several
-          photos, use the Image gallery below instead.
+        description: |-
+          Leave a blank line between paragraphs.
+          Headings: start a line with ## (or ### for a smaller one). Pull quote: start a line with >. Divider: a line with only ---.
+          Bullets: start each line with - . Numbered list: start each line with 1. 2. 3. and each number shows as you type it. A single numbered line with paragraphs under it becomes a large step heading, so 1. then 2. then 3. down the article gives numbered steps. Indent a line by two spaces to make a sub-list.
+          Text: *italic*, **bold**, ***bold italic***, ++underline++, ~~strikethrough~~, ==highlight==, x^2^ for superscript, H~2~O for subscript, `code`. Put a backslash before a symbol to show it as it is, for example \*.
+          Link: [the words](https://example.com).
+          Note box: write > [!NOTE], > [!TIP] or > [!WARNING] on its own line, then the text on the lines below, each starting with > .
+          Code: a line with three backticks, then the code, then a line with three backticks.
+          Photo: upload it in the Media section, then write ![What it shows](/media/photo.jpg) on its own line. To add a caption, put it in quotes after the address: ![What it shows](/media/photo.jpg "Your caption"). For several photos, use the Image gallery below instead.
       - name: gallery
         label: Image gallery
         type: object
@@ -160,7 +166,10 @@ content:
       - name: slug
         label: Link name
         type: string
-        description: Leave empty to build the link from the title. Use lowercase letters and hyphens.
+        description: Leave empty to build the link from the title. Use lowercase letters, numbers and hyphens.
+        pattern:
+          regex: '^$|^[a-z0-9]+(-[a-z0-9]+)*$'
+          message: Use only lowercase letters, numbers and single hyphens, for example the-one-light.
   - name: site
     label: Site settings
     type: file
@@ -203,6 +212,7 @@ content:
       - name: about_title
         label: About page headline
         type: string
+        description: The text marks work here, for example *italic* or **bold**. They also work in the introduction, the Contact message, the newsletter headline and description, the Short bio, Topic descriptions and the About page points.
       - name: about_intro
         label: About page introduction
         type: text
@@ -243,6 +253,7 @@ content:
           - name: name
             label: Topic name
             type: string
+            description: Spell it exactly as on your articles. Add stars to show it in italics everywhere, for example *Craft*.
           - name: blurb
             label: Description
             type: text
