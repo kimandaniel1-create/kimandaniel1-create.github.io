@@ -191,5 +191,16 @@
     "gallery_fit": "cover",
     "gallery_position": "after-intro",
     "draft": false
+  },
+  {
+    "title": "The One Light Challenge",
+    "date": "2026-11-18",
+    "updated": "2026-11-18",
+    "featured": false,
+    "gallery_layout": "slider",
+    "gallery_ratio": "16-10",
+    "gallery_fit": "cover",
+    "gallery_position": "after-intro",
+    "draft": false
   }
 ]
