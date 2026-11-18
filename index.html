@@ -30,6 +30,7 @@
   --accent-ink: #1b1206;
   --accent-wash: rgba(233, 185, 110, 0.12);
   --danger: #f08c80;
+  --ok: #8fd4a8;
 
   --font-display: 'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif;
   --font-text: 'Newsreader', Georgia, 'Times New Roman', serif;
@@ -390,6 +391,51 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 .prose figure.pic { margin: 2em 0; }
 .prose figure.pic img { display: block; width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); background: var(--bg-sunk); }
 .prose figure.pic figcaption { margin-top: .6rem; font: 400 .8125rem/1.5 var(--font-mono); color: var(--muted); }
+
+/* Lists. Bullets keep their amber marker. Numbered lists (ol.num) draw each number in a badge, counted by
+   CSS so a list can resume from the number the author typed. A one-item numbered list is a numbered
+   section title (ol.step) and is set larger so each step stands out while scrolling. */
+.prose li > ul, .prose li > ol { margin: .6em 0 .2em; }
+.prose ol.num { list-style: none; counter-reset: n; margin: 0 0 1.6em; padding: 0; }
+.prose ol.num > li { counter-increment: n; position: relative; margin: 0 0 .8em; padding: 0 0 0 2.65rem; min-height: 1.75rem; }
+.prose ol.num > li::before {
+  content: counter(n);
+  position: absolute; left: 0; top: .15rem; width: 1.75rem; height: 1.75rem;
+  display: grid; place-items: center;
+  border: 1px solid rgba(233, 185, 110, 0.4); border-radius: 50%; background: var(--accent-wash);
+  color: var(--accent); font: 500 .8rem/1 var(--font-mono); font-variant-numeric: tabular-nums;
+}
+.prose ol.num > li > ul, .prose ol.num > li > ol { margin-top: .7em; }
+.prose ol.step { margin: 2.4em 0 .55em; }
+.prose ol.step > li {
+  min-height: 2.25rem; margin: 0; padding-left: 3.25rem;
+  font-family: var(--font-display); font-size: 1.375rem; font-weight: 650; letter-spacing: -.015em; line-height: 1.25;
+  color: var(--fg); text-wrap: balance;
+}
+.prose ol.step > li::before { top: -.06rem; width: 2.25rem; height: 2.25rem; font-size: .95rem; }
+
+/* More inline marks and blocks written in the dashboard */
+u { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .2em; }
+s { color: var(--muted); text-decoration-thickness: 1px; }
+mark { background: rgba(233, 185, 110, 0.22); color: var(--fg); padding: .05em .25em; border-radius: 3px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+sub, sup { font-size: .72em; line-height: 0; }
+.prose .divider { margin: 2.8em 0; text-align: center; line-height: 1; }
+.prose .divider::after { content: "\2022\2002\2022\2002\2022"; display: block; color: var(--accent); font-size: 1.15rem; letter-spacing: .4em; text-indent: .4em; opacity: .85; }
+.callout { margin: 2em 0; padding: 1.1rem 1.25rem 1.1rem 1.35rem; border: 1px solid var(--line-strong); border-left: 3px solid var(--accent); border-radius: 10px; background: var(--bg-raise); }
+.prose .callout p { margin: 0 0 .7em; font-size: 1.0625rem; line-height: 1.6; color: var(--fg-soft); }
+.prose .callout p:last-child { margin-bottom: 0; }
+.prose .callout .callout-title { margin-bottom: .45rem; font: 500 .72rem var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.callout-tip { border-left-color: var(--ok); }
+.prose .callout-tip .callout-title { color: var(--ok); }
+.callout-warning { border-left-color: var(--danger); }
+.prose .callout-warning .callout-title { color: var(--danger); }
+
+/* Italic inside a heading. The sans-serif heading font has no italic of its own, so italics there
+   are set in the serif's real italic, which also reads better than a slanted sans. */
+h1 em, h2 em, h3 em, .pn strong em { font-family: var(--font-text); font-style: italic; font-weight: 500; letter-spacing: -.01em; }
+h1 mark, h2 mark, h3 mark { padding: 0 .12em; }
+h1 sup, h2 sup, h3 sup, h1 sub, h2 sub, h3 sub { font-size: .55em; line-height: 0; }
+@media (max-width: 560px) { .prose ol.step > li { font-size: 1.25rem; } }
 .loading { padding-block: clamp(4rem, 12vw, 8rem); }
 
 /* Image gallery inside an article
@@ -522,12 +568,17 @@ input[aria-invalid="true"] { border-color: var(--danger); }
       .filter(p => p && p.title && !(p.draft === true || p.draft === 'true'))
       .map(p => {
         const o = {};
-        o.title = String(p.title).trim();
-        let slug = slugify(p.slug || p.title) || 'entry', s = slug, n = 2;
+        // Title, summary and topic accept the same markers as the article (*italic*, **bold** and so on).
+        // The plain text is kept for the browser tab, search and links; the Html version is what is shown.
+        o.titleHtml = inl(String(p.title).trim(), true);
+        o.title = plainOf(o.titleHtml).trim() || String(p.title).trim();
+        let slug = slugify(p.slug || o.title) || 'entry', s = slug, n = 2;
         while (used[s]) s = slug + '-' + n++;
         used[s] = 1; o.slug = s;
-        o.deck = String(p.deck || '').trim();
-        o.topicName = String(p.topic || '').trim() || 'Notes';
+        o.deckHtml = inl(String(p.deck || '').trim(), true);
+        o.deck = plainOf(o.deckHtml).trim();
+        o.topicHtml = inl(String(p.topic || '').trim() || 'Notes', true);
+        o.topicName = plainOf(o.topicHtml).trim() || 'Notes';
         o.topicId = slugify(o.topicName) || 'notes';
         o.dateObj = parseDate(p.date);
         o.body = String(p.body || '');
@@ -577,34 +628,86 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 
     const blurbs = {}, seen = {};
     TOPICS = [];
-    SITE.topics.forEach(t => { if (t && t.name) blurbs[slugify(t.name)] = String(t.blurb || ''); });
-    const add = (id, name) => { if (!seen[id]) { seen[id] = 1; TOPICS.push({ id: id, name: name, blurb: blurbs[id] || '' }); } };
+    SITE.topics.forEach(t => { if (t && t.name) blurbs[slugify(plainOf(inl(String(t.name), true)))] = String(t.blurb || ''); });
+    const add = (id, name, html) => { if (!seen[id]) { seen[id] = 1; TOPICS.push({ id: id, name: name, html: html, blurb: blurbs[id] || '' }); } };
     const present = {};
     POSTS.forEach(p => { if (!present[p.topicId]) present[p.topicId] = p.topicName; });
-    SITE.topics.forEach(t => { const id = t && t.name ? slugify(t.name) : ''; if (id && present[id]) add(id, String(t.name)); });
-    POSTS.forEach(p => add(p.topicId, p.topicName));
+    SITE.topics.forEach(t => {
+      const id = t && t.name ? slugify(plainOf(inl(String(t.name), true))) : '';
+      if (id && present[id]) { const h = inl(String(t.name), true); add(id, plainOf(h).trim(), h); }
+    });
+    POSTS.forEach(p => add(p.topicId, p.topicName, p.topicHtml));
+    // One topic, one look: the name written under Site settings (or the first article's) is used for every article in it.
+    POSTS.forEach(p => { const t = TOPICS.find(x => x.id === p.topicId); if (t) { p.topicName = t.name; p.topicHtml = t.html; } });
   }
   const topicOf = id => TOPICS.find(t => t.id === id);
   const tagOf = id => TAGS.find(t => t.id === id);
 
-  function inl(s) {
-    let t = esc(s);
-    const codes = [];
-    t = t.replace(/`([^`]+)`/g, (m, c) => { codes.push(c); return '\u0000' + (codes.length - 1) + '\u0000'; });
-    t = t.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, txt, url) => {
-      if (!safeUrl(url)) return txt;
-      const ext = /^https?:/i.test(url);
-      return '<a href="' + url + '"' + (ext ? ' target="_blank" rel="noopener"' : '') + '>' + txt + '</a>';
-    });
-    t = t.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    t = t.replace(/(^|[^*])\*([^*\s][^*]*?)\*(?!\*)/g, '$1<em>$2</em>');
-    return t.replace(/\u0000(\d+)\u0000/g, (m, i) => '<code>' + codes[+i] + '</code>');
+  /* Inline formatting, used by article text and by every short text that supports the same markers
+     (titles, summaries, topic names and a few site texts). What the author types, and what it becomes:
+       **bold**   *italic*   ***bold italic***   ++underline++   ~~strikethrough~~   ==highlight==
+       x^2^ (superscript)   H~2~O (subscript)   `code`   [text](https://link)
+     A backslash before a marker (\*) shows the marker itself. Pass noLinks for titles and the like,
+     which already sit inside a link of their own. The result is always escaped HTML. */
+  function inl(s, noLinks) {
+    let t = esc(s).replace(/\u0000/g, '');
+    const keep = [];
+    const hold = h => '\u0000' + (keep.push(h) - 1) + '\u0000';
+    t = t.replace(/`([^`]+)`/g, (m, c) => hold('<code>' + c + '</code>'));
+    t = t.replace(/\\([\\`*+~=^\[\]()])/g, (m, c) => hold(c));
+    if (!noLinks) {
+      t = t.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, txt, url) => {
+        if (/\u0000/.test(url)) return m;
+        if (!safeUrl(url)) return txt;
+        const ext = /^https?:/i.test(url);
+        return hold('<a href="' + url + '"' + (ext ? ' target="_blank" rel="noopener"' : '') + '>') + txt + hold('</a>');
+      });
+    }
+    t = t.replace(/\*\*\*(\S(?:[^*]*?\S)?)\*\*\*/g, '<strong><em>$1</em></strong>');
+    t = t.replace(/\*\*(\S(?:[\s\S]*?\S)?)\*\*/g, '<strong>$1</strong>');
+    t = t.replace(/(^|[^*])\*([^*\s](?:[^*]*?[^*\s])?)\*(?!\*)/g, '$1<em>$2</em>');
+    t = t.replace(/(^|[^+\w])\+\+(\S(?:[^+]*?\S)?)\+\+(?!\+)/g, '$1<u>$2</u>');
+    t = t.replace(/~~(\S(?:[^~]*?\S)?)~~/g, '<s>$1</s>');
+    t = t.replace(/==(\S(?:[^=]*?\S)?)==/g, '<mark>$1</mark>');
+    t = t.replace(/\^([^\s^]+)\^/g, '<sup>$1</sup>');
+    t = t.replace(/~([^\s~]+)~/g, '<sub>$1</sub>');
+    return t.replace(/\u0000(\d+)\u0000/g, (m, i) => keep[+i]);
   }
+  // The same text with the markers removed, for the page title, search and the contents list.
+  function plainOf(html) { const d = document.createElement('div'); d.innerHTML = html; return d.textContent; }
 
   function mdBlocks(md) {
     const L = String(md || '').replace(/\r\n?/g, '\n').split('\n');
     const out = [];
-    const isStart = s => /^(```|#{1,6}\s|>|!\[[^\]]*\]\([^)]*\)\s*$|\s*[-*+]\s+|\s*\d+[.)]\s+)/.test(s);
+    const HR = /^\s*([-*_])(?:\s*\1){2,}\s*$/;
+    const ITEM = /^(\s*)([-*+]|\d{1,3}[.)])\s+(\S.*)$/;
+    const isStart = s => /^(```|#{1,6}\s|>|!\[[^\]]*\]\([^)]*\)\s*$|\s*[-*+]\s+|\s*\d{1,3}[.)]\s+)/.test(s) || HR.test(s);
+    // Turns the flat run of list lines into nested lists. Deeper indentation makes a sub-list, and a change
+    // between bullets and numbers at the same depth starts a new list. Each list remembers the number it opens
+    // with, so steps separated by paragraphs keep counting (1, 2, 3) instead of each starting again at 1.
+    function nest(items) {
+      let pos = 0;
+      function level(indent) {
+        const list = { t: 'list', ordered: items[pos].ordered, start: items[pos].num, items: [] };
+        while (pos < items.length) {
+          const it = items[pos];
+          if (it.indent < indent) break;
+          if (it.indent > indent) {
+            const last = list.items[list.items.length - 1];
+            if (!last) { it.indent = indent; continue; }
+            last.kids.push(level(it.indent));
+            continue;
+          }
+          if (it.ordered !== list.ordered) break;
+          list.items.push({ text: it.text, kids: [] });
+          pos++;
+        }
+        return list;
+      }
+      const lists = [];
+      while (pos < items.length) lists.push(level(items[pos].indent));
+      return lists;
+    }
     let i = 0, m;
     while (i < L.length) {
       const line = L[i];
@@ -618,23 +721,32 @@ input[aria-invalid="true"] { border-color: var(--danger); }
         continue;
       }
       if ((m = line.match(/^(#{1,6})\s+(.*?)\s*$/))) { out.push({ t: m[1].length <= 2 ? 'h2' : 'h3', text: m[2] }); i++; continue; }
+      if (HR.test(line)) { out.push({ t: 'hr' }); i++; continue; }
       if (/^>/.test(line)) {
         const q = [];
         while (i < L.length && /^>/.test(L[i])) { q.push(L[i].replace(/^>\s?/, '')); i++; }
-        out.push({ t: 'q', text: q.join(' ') });
+        // A quote that opens with [!NOTE], [!TIP] or [!WARNING] becomes a callout box instead of a pull quote.
+        if ((m = q[0].match(/^\[!(NOTE|TIP|WARNING)\]\s*$/i))) {
+          const paras = [[]];
+          q.slice(1).forEach(x => { if (x.trim()) paras[paras.length - 1].push(x.trim()); else if (paras[paras.length - 1].length) paras.push([]); });
+          out.push({ t: 'note', kind: m[1].toLowerCase(), paras: paras.filter(x => x.length).map(x => x.join(' ')) });
+        } else {
+          out.push({ t: 'q', text: q.join(' ') });
+        }
         continue;
       }
       if ((m = line.match(/^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)\s*$/))) { out.push({ t: 'img', alt: m[1], src: m[2], cap: m[3] || '' }); i++; continue; }
-      if (/^\s*[-*+]\s+/.test(line)) {
+      if (ITEM.test(line)) {
         const items = [];
-        while (i < L.length && /^\s*[-*+]\s+/.test(L[i])) { items.push(L[i].replace(/^\s*[-*+]\s+/, '')); i++; }
-        out.push({ t: 'ul', items: items });
-        continue;
-      }
-      if (/^\s*\d+[.)]\s+/.test(line)) {
-        const items = [];
-        while (i < L.length && /^\s*\d+[.)]\s+/.test(L[i])) { items.push(L[i].replace(/^\s*\d+[.)]\s+/, '')); i++; }
-        out.push({ t: 'ol', items: items });
+        while (i < L.length) {
+          let j = i;
+          while (j < L.length && !L[j].trim()) j++; // a blank line inside a list does not end it, as long as another item follows
+          const im = j < L.length && L[j].replace(/\t/g, '    ').match(ITEM);
+          if (!im || HR.test(L[j])) break;
+          items.push({ indent: im[1].length, ordered: /\d/.test(im[2]), num: parseInt(im[2], 10) || 1, text: im[3] });
+          i = j + 1;
+        }
+        nest(items).forEach(l => out.push(l));
         continue;
       }
       const para = [];
@@ -645,6 +757,21 @@ input[aria-invalid="true"] { border-color: var(--danger); }
   }
 
   const LANGS = { js: 'JavaScript', javascript: 'JavaScript', ts: 'TypeScript', typescript: 'TypeScript', css: 'CSS', html: 'HTML', json: 'JSON', bash: 'Shell', sh: 'Shell', shell: 'Shell', py: 'Python', python: 'Python' };
+
+  const NOTE_LABELS = { note: 'Note', tip: 'Tip', warning: 'Warning' };
+
+  /* Numbered lists get a numbered badge (class "num"). A numbered list with a single item, which is how a
+     numbered section title is written ("1. Move the light"), gets the larger "step" style, so each step
+     is easy to spot while scrolling. A list that starts above 1 resumes counting from its own number. */
+  function listHtml(l) {
+    const tag = l.ordered ? 'ol' : 'ul';
+    let attrs = '';
+    if (l.ordered) {
+      const single = l.items.length === 1 && !l.items[0].kids.length;
+      attrs = ' class="num' + (single ? ' step' : '') + '" role="list"' + (l.start > 1 ? ' style="counter-reset:n ' + (l.start - 1) + '"' : '');
+    }
+    return '<' + tag + attrs + '>' + l.items.map(x => '<li>' + inl(x.text) + x.kids.map(listHtml).join('') + '</li>').join('') + '</' + tag + '>';
+  }
 
   // Returns the article as separate blocks (parts) as well as one string, and the index of the first
   // paragraph, so a gallery can be placed right after the opening paragraph.
@@ -664,7 +791,9 @@ input[aria-invalid="true"] { border-color: var(--danger); }
         case 'img':
           if (!safeUrl(b.src)) return '';
           return '<figure class="pic"><img src="' + esc(b.src) + '" alt="' + esc(b.alt) + '" loading="lazy">' + (b.cap ? '<figcaption>' + esc(b.cap) + '</figcaption>' : '') + '</figure>';
-        case 'ul': case 'ol': return '<' + b.t + '>' + b.items.map(x => '<li>' + inl(x) + '</li>').join('') + '</' + b.t + '>';
+        case 'list': return listHtml(b);
+        case 'hr': return '<div class="divider" role="separator"></div>';
+        case 'note': return '<aside class="callout callout-' + b.kind + '"><p class="callout-title">' + NOTE_LABELS[b.kind] + '</p>' + b.paras.map(x => '<p>' + inl(x) + '</p>').join('') + '</aside>';
         default: return '<p>' + inl(b.text).replace(/\n/g, '<br>') + '</p>';
       }
     });
@@ -737,16 +866,16 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 
   /* ---------- Parts ---------- */
   function metaLine(p, withTopic) {
-    return '<div class="meta">' + (withTopic ? '<span class="tag">' + esc(p.topicName) + '</span>' : '') +
+    return '<div class="meta">' + (withTopic ? '<span class="tag">' + p.topicHtml + '</span>' : '') +
       (p.dateObj ? '<span>' + fmtDate(p.dateObj) + '</span>' : '') + '<span>' + p.mins + ' min read</span></div>';
   }
   function card(p) {
     return '<a class="card" href="#post-' + p.slug + '"><div class="thumb">' + renderPostVisual(p) + '</div>' +
-      metaLine(p, true) + '<h3>' + esc(p.title) + '</h3>' + (p.deck ? '<p>' + esc(p.deck) + '</p>' : '') + '</a>';
+      metaLine(p, true) + '<h3>' + p.titleHtml + '</h3>' + (p.deck ? '<p>' + p.deckHtml + '</p>' : '') + '</a>';
   }
   function row(p) {
     return '<a class="row" href="#post-' + p.slug + '"><div class="thumb">' + renderPostVisual(p) + '</div>' +
-      '<div class="row-body">' + metaLine(p, true) + '<h3>' + esc(p.title) + '</h3>' + (p.deck ? '<p>' + esc(p.deck) + '</p>' : '') + '</div></a>';
+      '<div class="row-body">' + metaLine(p, true) + '<h3>' + p.titleHtml + '</h3>' + (p.deck ? '<p>' + p.deckHtml + '</p>' : '') + '</div></a>';
   }
   /* Newsletter sign-up. The form on this page sends the address to Kit in the background and then
      swaps itself for a thank-you message. Site settings hold the address of the Kit form, taken
@@ -785,8 +914,8 @@ input[aria-invalid="true"] { border-color: var(--danger); }
     if (!newsEndpoint()) return '';
     return '<section class="band band-news"><div class="wrap news-grid"><div>' +
       '<p class="kicker"><b>' + esc(SITE.newsletter_name) + '</b></p>' +
-      '<h2 class="h-section" style="margin-top:.6rem">' + esc(SITE.newsletter_heading) + '</h2>' +
-      (SITE.newsletter_text ? '<p>' + esc(SITE.newsletter_text) + '</p>' : '') + '</div>' +
+      '<h2 class="h-section" style="margin-top:.6rem">' + inl(SITE.newsletter_heading, true) + '</h2>' +
+      (SITE.newsletter_text ? '<p>' + inl(SITE.newsletter_text, true) + '</p>' : '') + '</div>' +
       '<div>' + subscribeForm('sub-band-email') + '</div></div></section>';
   }
   function emptyState(title, text) {
@@ -871,8 +1000,8 @@ input[aria-invalid="true"] { border-color: var(--danger); }
     return '<li class="slider-item"><a class="slide" href="#post-' + p.slug + '">' +
       '<div class="thumb">' + renderPostVisual(p) + '</div>' +
       metaLine(p, true) +
-      '<h3>' + esc(p.title) + '</h3>' +
-      (p.deck ? '<p>' + esc(p.deck) + '</p>' : '') +
+      '<h3>' + p.titleHtml + '</h3>' +
+      (p.deck ? '<p>' + p.deckHtml + '</p>' : '') +
       '</a></li>';
   }
 
@@ -1005,9 +1134,9 @@ input[aria-invalid="true"] { border-color: var(--danger); }
     return '<h1 class="sr-only">' + esc(SITE.name + (SITE.tagline ? ', ' + SITE.tagline : '')) + '</h1>' +
       '<section class="hero"><div class="wrap hero-grid">' +
       '<div class="hero-copy">' +
-      '<p class="kicker"><b>Featured</b> · ' + esc(f.topicName) + '</p>' +
-      '<h2 class="hero-title"><a href="#post-' + f.slug + '">' + esc(f.title) + '</a></h2>' +
-      (f.deck ? '<p class="hero-deck">' + esc(f.deck) + '</p>' : '') +
+      '<p class="kicker"><b>Featured</b> · ' + f.topicHtml + '</p>' +
+      '<h2 class="hero-title"><a href="#post-' + f.slug + '">' + f.titleHtml + '</a></h2>' +
+      (f.deck ? '<p class="hero-deck">' + f.deckHtml + '</p>' : '') +
       '<div class="meta">' + (f.authorName ? '<span>' + esc(f.authorName) + '</span>' : '') + (f.dateObj ? '<span>' + fmtDate(f.dateObj) + '</span>' : '') + '<span>' + f.mins + ' min read</span></div>' +
       '<a class="btn" href="#post-' + f.slug + '">Read the essay ' + ARROW + '</a></div>' +
       '<div class="hero-visual" id="lamp">' + coverSVG(f.slug, true) + '<span class="hint" aria-hidden="true">Move the light</span></div>' +
@@ -1015,7 +1144,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
       '<section class="band band-line"><div class="wrap"><div class="section-head"><h2 class="h-section">Topics</h2></div><div class="topics">' +
       TOPICS.map(t => {
         const n = POSTS.filter(p => p.topicId === t.id).length;
-        return '<a class="topic" href="#journal-' + t.id + '"><span class="count">' + plural(n, 'entry', 'entries') + '</span><h3>' + esc(t.name) + '</h3>' + (t.blurb ? '<p>' + esc(t.blurb) + '</p>' : '') + '</a>';
+        return '<a class="topic" href="#journal-' + t.id + '"><span class="count">' + plural(n, 'entry', 'entries') + '</span><h3>' + t.html + '</h3>' + (t.blurb ? '<p>' + inl(t.blurb, true) + '</p>' : '') + '</a>';
       }).join('') + '</div></div></section>' +
       imageSliderBand(others) +
       (latest.length ? '<section class="band band-line"><div class="wrap"><div class="section-head"><h2 class="h-section">Latest</h2>' +
@@ -1049,13 +1178,13 @@ input[aria-invalid="true"] { border-color: var(--danger); }
     const t = topicId ? topicOf(topicId) : null;
     const g = tagId ? tagOf(tagId) : null;
     return '<section class="page-head"><div class="wrap">' +
-      '<p class="kicker">' + (t ? 'Journal · ' + esc(t.name) : g ? 'Journal · Tag' : 'Journal') + '</p>' +
-      '<h1 class="h-page">' + (t ? esc(t.name) : g ? 'Tagged “' + esc(g.name) + '”' : 'Everything we’ve published') + '</h1>' +
-      '<p class="lede">' + (t ? esc(t.blurb || plural(POSTS.filter(p => p.topicId === t.id).length, 'entry', 'entries') + ' in this topic.') : g ? plural(g.n, 'entry', 'entries') + ' tagged “' + esc(g.name) + '”.' : plural(POSTS.length, 'entry', 'entries') + ' across ' + plural(TOPICS.length, 'topic', 'topics') + '.') + '</p>' +
+      '<p class="kicker">' + (t ? 'Journal · ' + t.html : g ? 'Journal · Tag' : 'Journal') + '</p>' +
+      '<h1 class="h-page">' + (t ? t.html : g ? 'Tagged “' + esc(g.name) + '”' : 'Everything we’ve published') + '</h1>' +
+      '<p class="lede">' + (t ? inl(t.blurb || plural(POSTS.filter(p => p.topicId === t.id).length, 'entry', 'entries') + ' in this topic.', true) : g ? plural(g.n, 'entry', 'entries') + ' tagged “' + esc(g.name) + '”.' : plural(POSTS.length, 'entry', 'entries') + ' across ' + plural(TOPICS.length, 'topic', 'topics') + '.') + '</p>' +
       '<div class="tools"><label class="search"><span class="sr-only">Search entries</span>' + SEARCH +
       '<input id="q" type="search" placeholder="Search titles and ideas" autocomplete="off"></label>' +
       '<nav class="chips" aria-label="Filter by topic"><a class="chip" href="#journal"' + (!t && !g ? ' aria-current="page"' : '') + '>All</a>' +
-      TOPICS.map(x => '<a class="chip" href="#journal-' + x.id + '"' + (t && t.id === x.id ? ' aria-current="page"' : '') + '>' + esc(x.name) + '</a>').join('') +
+      TOPICS.map(x => '<a class="chip" href="#journal-' + x.id + '"' + (t && t.id === x.id ? ' aria-current="page"' : '') + '>' + x.html + '</a>').join('') +
       '</nav>' +
       (TAGS.length ? '<nav class="chip-group" aria-label="Filter by tag"><span class="kicker">Tags</span>' +
         TAGS.map(x => '<a class="chip chip-tag" href="#tag-' + x.id + '"' + (g && g.id === x.id ? ' aria-current="page"' : '') + '>' + esc(x.name) + '<span class="n">' + x.n + '</span></a>').join('') + '</nav>' : '') +
@@ -1078,24 +1207,24 @@ input[aria-invalid="true"] { border-color: var(--danger); }
       (role ? '<div class="meta"><span>' + esc(role) + '</span></div>' : '') + '</div></div>' : '';
     return '<article>' +
       '<div class="wrap post-head">' +
-      '<nav class="crumbs" aria-label="Breadcrumb"><a href="#journal">Journal</a><span aria-hidden="true">/</span><a href="#journal-' + p.topicId + '">' + esc(p.topicName) + '</a></nav>' +
-      '<h1 class="post-title">' + esc(p.title) + '</h1>' +
-      (p.deck ? '<p class="post-deck">' + esc(p.deck) + '</p>' : '') +
+      '<nav class="crumbs" aria-label="Breadcrumb"><a href="#journal">Journal</a><span aria-hidden="true">/</span><a href="#journal-' + p.topicId + '">' + p.topicHtml + '</a></nav>' +
+      '<h1 class="post-title">' + p.titleHtml + '</h1>' +
+      (p.deck ? '<p class="post-deck">' + p.deckHtml + '</p>' : '') +
       '<div class="byline">' + who +
       '<div class="meta">' + (p.dateObj ? '<span>' + fmtDate(p.dateObj) + '</span>' : '') + '<span>' + p.mins + ' min read</span>' + updatedHtml(p) + '</div></div>' + tagsHtml(p) +
       '</div>' +
       '<div class="wrap"><div class="thumb post-cover">' + renderPostVisual(p) + '</div></div>' +
       '<div class="wrap post-grid">' +
       '<aside class="toc" aria-label="In this piece">' + (body.heads.length ? '<p class="kicker">In this piece</p>' +
-        body.heads.map(h => '<button type="button" data-jump="' + h.id + '">' + esc(h.text) + '</button>').join('') : '') + '</aside>' +
+        body.heads.map(h => '<button type="button" data-jump="' + h.id + '">' + esc(plainOf(inl(h.text))) + '</button>').join('') : '') + '</aside>' +
       '<div>' + gal.before + '<div class="prose" id="article">' + gal.content + '</div>' +
       sourcesHtml(p) +
       '<div class="share"><span class="kicker">Share</span><button type="button" class="btn btn-ghost btn-small" data-copylink>Copy link</button></div>' +
       (p.authorName ? '<div class="author-box"><span class="avatar" aria-hidden="true">' + esc(initials(p.authorName)) + '</span><div><div class="by-name">' + esc(p.authorName) + '</div>' +
-        (role ? '<div class="meta"><span>' + esc(role) + '</span></div>' : '') + (bio ? '<p>' + esc(bio) + '</p>' : '') + '</div></div>' : '') +
+        (role ? '<div class="meta"><span>' + esc(role) + '</span></div>' : '') + (bio ? '<p>' + inl(bio, true) + '</p>' : '') + '</div></div>' : '') +
       '<nav class="pn" aria-label="More entries">' +
-      (newer ? '<a href="#post-' + newer.slug + '"><span class="kicker">Newer</span><strong>' + esc(newer.title) + '</strong></a>' : '<span></span>') +
-      (older ? '<a href="#post-' + older.slug + '"><span class="kicker">Older</span><strong>' + esc(older.title) + '</strong></a>' : '<span></span>') +
+      (newer ? '<a href="#post-' + newer.slug + '"><span class="kicker">Newer</span><strong>' + newer.titleHtml + '</strong></a>' : '<span></span>') +
+      (older ? '<a href="#post-' + older.slug + '"><span class="kicker">Older</span><strong>' + older.titleHtml + '</strong></a>' : '<span></span>') +
       '</nav></div></div></article>' +
       (related.length ? '<section class="band band-line"><div class="wrap"><div class="section-head"><h2 class="h-section">Keep reading</h2></div><div class="grid-2">' + related.map(card).join('') + '</div></div></section>' : '') +
       newsBand();
@@ -1105,16 +1234,16 @@ input[aria-invalid="true"] { border-color: var(--danger); }
     const n = POSTS.filter(p => p.authorName === SITE.editor_name).length;
     const mail = SITE.email;
     return '<section class="page-head"><div class="wrap"><p class="kicker">About</p>' +
-      '<h1 class="h-page">' + esc(SITE.about_title) + '</h1>' +
-      (SITE.about_intro ? '<p class="lede">' + esc(SITE.about_intro) + '</p>' : '') + '</div></section>' +
+      '<h1 class="h-page">' + inl(SITE.about_title, true) + '</h1>' +
+      (SITE.about_intro ? '<p class="lede">' + inl(SITE.about_intro, true) + '</p>' : '') + '</div></section>' +
       (SITE.principles.length ? '<section class="band band-line"><div class="wrap"><div class="section-head"><h2 class="h-section">How we work</h2></div><div class="principles">' +
-        SITE.principles.map(x => '<div><h3>' + esc(x && x.title) + '</h3><p>' + esc(x && x.text) + '</p></div>').join('') + '</div></div></section>' : '') +
+        SITE.principles.map(x => '<div><h3>' + inl(x && x.title, true) + '</h3><p>' + inl(x && x.text, true) + '</p></div>').join('') + '</div></div></section>' : '') +
       (SITE.editor_name ? '<section class="band band-line"><div class="wrap"><div class="section-head"><h2 class="h-section">The editor</h2></div><div class="people">' +
         '<div class="person"><span class="avatar" aria-hidden="true">' + esc(initials(SITE.editor_name)) + '</span><div><h3>' + esc(SITE.editor_name) + '</h3><div class="meta">' +
         (SITE.editor_role ? '<span>' + esc(SITE.editor_role) + '</span>' : '') + '<span>' + plural(n, 'entry', 'entries') + '</span></div></div>' +
-        (SITE.editor_bio ? '<p>' + esc(SITE.editor_bio) + '</p>' : '') + '</div></div></div></section>' : '') +
+        (SITE.editor_bio ? '<p>' + inl(SITE.editor_bio, true) + '</p>' : '') + '</div></div></div></section>' : '') +
       (mail ? '<section class="band band-line"><div class="wrap two-col"><h2 class="h-section">Get in touch</h2><div class="body">' +
-        (SITE.contact_text ? '<p>' + esc(SITE.contact_text) + '</p>' : '') +
+        (SITE.contact_text ? '<p>' + inl(SITE.contact_text, true) + '</p>' : '') +
         '<div class="mail"><code>' + esc(mail) + '</code><button type="button" class="btn btn-ghost btn-small" data-copytext="' + esc(mail) + '">Copy address</button></div></div></div></section>' : '') +
       (SITE.social.length ? '<section class="band band-line"><div class="wrap two-col"><h2 class="h-section">Elsewhere</h2><div class="body"><ul class="social">' +
         SITE.social.map(x => '<li><a class="chip" href="' + esc(x.url) + '"' + extAttrs(x.url) + '>' + esc(x.label) + '</a></li>').join('') + '</ul></div></div></section>' : '') +
@@ -1125,7 +1254,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
   function viewSubscribe() {
     return '<section class="page-head"><div class="wrap"><p class="kicker">Subscribe</p>' +
       '<h1 class="h-page">' + esc(SITE.newsletter_name) + '</h1>' +
-      '<p class="lede">' + esc(SITE.newsletter_text || SITE.newsletter_heading) + '</p>' +
+      '<p class="lede">' + inl(SITE.newsletter_text || SITE.newsletter_heading, true) + '</p>' +
       '<div class="sub-page">' + subscribeForm('sub-page-email') + '</div></div></section>' +
       (POSTS.length ? '<section class="band band-line"><div class="wrap"><div class="section-head"><h2 class="h-section">Recent issues</h2></div><div class="grid-2">' + POSTS.slice(0, 2).map(card).join('') + '</div></div></section>' : '');
   }
@@ -1158,7 +1287,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
     $('#foot').innerHTML = '<div class="wrap"><div class="foot-grid' + (SITE.social.length ? ' has-social' : '') + '">' +
       '<div><a class="brand" href="#home">' + esc(SITE.name) + '</a>' + (SITE.tagline ? '<p>' + esc(SITE.tagline) + (SITE.editor_name ? ' Edited by ' + esc(SITE.editor_name) + '.' : '') + '</p>' : '') + '</div>' +
       '<div><h2>Read</h2><ul><li><a href="#journal">All entries</a></li>' +
-      TOPICS.map(t => '<li><a href="#journal-' + t.id + '">' + esc(t.name) + '</a></li>').join('') + '</ul></div>' +
+      TOPICS.map(t => '<li><a href="#journal-' + t.id + '">' + t.html + '</a></li>').join('') + '</ul></div>' +
       '<div><h2>Site</h2><ul><li><a href="#about">About</a></li>' + (newsEndpoint() ? '<li><a href="#subscribe">Subscribe</a></li>' : '') + '</ul></div>' +
       (SITE.social.length ? '<div><h2>Follow</h2><ul>' + SITE.social.map(x => '<li><a href="' + esc(x.url) + '"' + extAttrs(x.url) + '>' + esc(x.label) + '</a></li>').join('') + '</ul></div>' : '') +
       '</div><div class="legal"><span>© ' + new Date().getFullYear() + ' ' + esc(SITE.editor_name || SITE.name) + '</span>' +
